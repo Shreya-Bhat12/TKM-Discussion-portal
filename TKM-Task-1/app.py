@@ -28,10 +28,11 @@ def get_db():
     conn = psycopg2.connect(
         host="localhost",
         database="postgres",
-        user="postgres",
-        password="Shreya@2005",
+        user="TKM02052",
+        password="TUKA@2028",
         port="5432"
     )
+
     conn.autocommit = False
     return conn
 
@@ -354,7 +355,7 @@ function togglePW(inputId, btnId) {
 """
 
 
-def render_header():
+def render_admin_header():
     name, username, role = get_current_user()
     is_admin = 'admin' in session
     role_cls = ''.join(c for c in role if c.isalnum())
@@ -364,6 +365,39 @@ def render_header():
         <a href="/add_shipment">+ New Part</a>
         <a href="/manage_admins">Admins</a>
         <a href="/manage_users">Users</a>
+        <a href="/trash">Trash</a>
+        <a href="/logout" class="nav-danger">Logout</a>
+        """
+    elif 'dealer' in session:
+        nav = '<a href="/dealer_dashboard">Dashboard</a><a href="/logout" class="nav-danger">Logout</a>'
+    else:
+        nav = '<a href="/">Login</a>'
+
+    return f"""
+    <div class="site-header">
+      <div class="header-logo-wrap">
+        <img src="{TOYOTA_LOGO}" alt="Toyota" style="height:44px;filter:drop-shadow(0 0 8px rgba(200,168,75,0.4))">
+        <div class="header-brand">
+          <span class="brand-main">TKM</span>
+          <span class="brand-sub">Toyota Kirloskar Motors</span>
+        </div>
+      </div>
+      <div class="header-center-title">QAC Discussion Portal</div>
+      <div class="header-right-wrap">
+        <span class="role-tag role-{role_cls}">{role}</span>
+        <span class="user-pill">&#128100; {name} &bull; {username}</span>
+        <div class="header-nav">{nav}</div>
+      </div>
+    </div>
+    """
+def render_dealer_header():
+    name, username, role = get_current_user()
+    is_admin = 'admin' in session
+    role_cls = ''.join(c for c in role if c.isalnum())
+    if is_admin:
+        nav = """
+        <a href="/admin_dashboard">Dashboard</a>
+        <a href="/add_shipment">+ New Part</a>
         <a href="/trash">Trash</a>
         <a href="/logout" class="nav-danger">Logout</a>
         """
@@ -485,7 +519,7 @@ def register():
           <input type="text" name="username" required placeholder="Choose a username" value="{request.form.get('username','') if request.method=='POST' else ''}"></div>
         <div class="field-group"><label>Department</label>
           <select name="department">
-            <option value="General">General</option>
+            <option value="General">TSD</option>
             <option value="QAC">QAC</option>
             <option value="QIC">QIC</option>
             <option value="Production">Production</option>
@@ -610,15 +644,19 @@ def logout():
 def build_shipment_table(shipments, is_admin):
     rows = ""
     for s in shipments:
-        status_cls = f"status-{s['status']}" if s['status'] else ""
-        dealer_id_val = s['dealer_id'] if s['dealer_id'] else ''
-        if is_admin:
-            actions = f"""
-            <a href="{url_for('edit_shipment', slno=s['Sl_No'])}" class="btn btn-sm btn-warn">Edit</a>
-            <a href="{url_for('delete_shipment', slno=s['Sl_No'])}" class="btn btn-sm btn-danger"
-               onclick="return confirm('Move to trash?')">Delete</a>"""
-        else:
-            actions = f'<a href="{url_for("edit_shipment", slno=s["Sl_No"])}" class="btn btn-sm btn-warn">Edit</a>'
+        # Define status class safely
+        current_status = s.get('status') or 'Open'
+        status_cls = f"status-{current_status}"
+        
+        dealer_id_val = s.get('dealer_id') or ''
+        
+        # We define actions to include BOTH Edit and Delete for everyone now
+        actions = f"""
+        <a href="{url_for('edit_shipment', slno=s['Sl_No'])}" class="btn btn-sm btn-warn">Edit</a>
+        <a href="{url_for('delete_shipment', slno=s['Sl_No'])}" class="btn btn-sm btn-danger"
+           onclick="return confirm('Move to trash?')">Delete</a>
+        """
+            
         rows += f"""
         <tr>
           <td style="color:var(--text-muted)">{s['Sl_No']}</td>
@@ -631,14 +669,14 @@ def build_shipment_table(shipments, is_admin):
           <td>{s['PIC'] or ''}</td>
           <td>{s['category'] or ''}</td>
           <td>{s['Remark'] or ''}</td>
-          <td><span class="{status_cls}">{s['status'] or 'Open'}</span></td>
+          <td><span class="{status_cls}">{current_status}</span></td>
           <td style="color:var(--accent-gold);font-weight:600">{dealer_id_val}</td>
           <td><a href="{url_for('view_discussion', shipment_id=s['Sl_No'])}" class="btn btn-sm btn-success">&#128172; Discuss</a></td>
           <td>{actions}</td>
         </tr>"""
     return rows
 
-
+ 
 def build_filter_form(vals, action):
     def sel(name, field, options):
         opts = '<option value="">All</option>'
@@ -714,7 +752,7 @@ def admin_dashboard():
     rows = build_shipment_table(shipments, True)
     qs = '&'.join(f"{k}={v}" for k, v in vals.items() if v)
     pagination = "".join([f'<a href="?page={p}&{qs}" class="{"active" if p==page else ""}">{p}</a>' for p in range(1, total_pages+1)])
-    html = get_base_style() + render_header() + f"""
+    html = get_base_style() + render_admin_header() + f"""
     <div class="page-wrap">
       <div class="card">{build_filter_form(vals, '/admin_dashboard')}</div>
       <div class="card">
@@ -741,31 +779,49 @@ def admin_dashboard():
 def dealer_dashboard():
     if 'dealer' not in session:
         return redirect('/')
+        
     vals = {k: request.args.get(k, '') for k in ['query','model','supplier','date_sent','pic','status','remark','category']}
     page = int(request.args.get('page', 1))
     shipments, total = _dashboard_query(vals, page)
     total_pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
-    rows = build_shipment_table(shipments, False)
+    
+    # Pass 'True' so that the table builder knows to show full actions if needed
+    rows = build_shipment_table(shipments, True)
+    
     qs = '&'.join(f"{k}={v}" for k, v in vals.items() if v)
     pagination = "".join([f'<a href="?page={p}&{qs}" class="{"active" if p==page else ""}">{p}</a>' for p in range(1, total_pages+1)])
-    html = get_base_style() + render_header() + f"""
+    
+    html = get_base_style() + render_dealer_header() + f"""
     <div class="page-wrap">
       <div class="card">{build_filter_form(vals, '/dealer_dashboard')}</div>
       <div class="card">
-        <h3 style="margin-bottom:12px">&#128230; Available Parts &nbsp;
-          <small style="color:var(--text-dim);font-weight:400;font-family:'IBM Plex Sans',sans-serif">{total} records</small></h3>
-        <div class="table-wrap"><table>
-          <thead><tr><th>SL</th><th>Date</th><th>Model</th><th>Part No.</th><th>Part Name</th>
-            <th>Supplier</th><th>Concern</th><th>PI Number</th><th>Category</th>
-            <th>Remark</th><th>Status</th><th>Dealer ID</th><th>Discussion</th><th>Actions</th></tr></thead>
-          <tbody>{rows}</tbody>
-        </table></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 style="margin: 0;">
+                &#128230; Available Parts &nbsp;
+                <small style="color:var(--text-dim); font-weight:400; font-family:'IBM Plex Sans',sans-serif">({total} records)</small>
+            </h3>
+            <div style="display: flex; gap: 10px;">
+                <a href="/add_shipment" class="btn btn-sm btn-primary" style="text-decoration:none">+ New Part</a>
+                <a href="/dealer_dashboard?is_deleted=1" class="btn btn-sm" style="background:rgba(220, 53, 69, 0.1); color:#dc3545; border:1px solid #dc3545; text-decoration:none;">
+                    &#128465; Trash
+                </a>
+            </div>
+        </div>
+        
+        <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>SL</th><th>Date</th><th>Model</th><th>Part No.</th><th>Part Name</th>
+                  <th>Supplier</th><th>Concern</th><th>PI Number</th><th>Category</th>
+                  <th>Remark</th><th>Status</th><th>Dealer ID</th><th>Discussion</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>{rows}</tbody>
+            </table>
+        </div>
         <div class="pagination">{pagination}</div>
       </div>
-    </div>
-    <div class="view-switcher">
-      <a href="/dealer_dashboard" class="vs-normal vs-active"><span class="vs-icon">&#9776;</span> Normal View</a>
-      <a href="/summary_dashboard" class="vs-summary"><span class="vs-icon">&#128202;</span> Summary View</a>
     </div>
     """
     return render_template_string(html)
@@ -777,13 +833,21 @@ def dealer_dashboard():
 def shipment_form(action, data=None, btn="Add Part"):
     d = data or {}
     def v(k):
-        return d.get(k, '') if isinstance(d, dict) else (d[k] if k in d.keys() else '')
+        if not d: return ''
+        try:
+            val = d.get(k, '') if isinstance(d, dict) else (d[k] if k in d.keys() else '')
+            return val if val is not None else ''
+        except: return ''
+
     def sel(name, opts, cur):
-        o = "".join([f'<option value="{x}" {"selected" if cur==x else ""}>{x if x else "--Select--"}</option>' for x in opts])
+        o = "".join([f'<option value="{x}" {"selected" if str(cur)==str(x) else ""}>{x if x else "--Select--"}</option>' for x in opts])
         return f'<select name="{name}">{o}</select>'
+
     return f"""
     <form method="POST" action="{action}">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div class="form-group"><label>Dealer ID *</label>
+        <input type="text" name="dealer_id" value="{v('dealer_id')}" required></div>
       <div class="form-group"><label>Part Name *</label>
         <input type="text" name="part_name" value="{v('Part_Name')}" required></div>
       <div class="form-group"><label>Part Number *</label>
@@ -807,36 +871,39 @@ def shipment_form(action, data=None, btn="Add Part"):
       <textarea name="customer_concern" rows="3" style="width:100%">{v('Customer_Concern')}</textarea></div>
     <br>
     <button type="submit" class="btn btn-primary">{btn}</button>
-    &nbsp;<a href="/admin_dashboard" class="btn" style="background:rgba(42,106,191,0.15);color:var(--chrome-2);border:1px solid var(--border-light)">Cancel</a>
+    <a href="/admin_dashboard" class="btn" style="background:rgba(42,106,191,0.15);color:var(--chrome-2);border:1px solid var(--border-light);text-decoration:none;padding:8px 15px;display:inline-block;border-radius:4px;">Cancel</a>
     </form>"""
-
 
 @app.route('/add_shipment', methods=['GET', 'POST'])
 def add_shipment():
-    if 'admin' not in session:
-        return redirect('/admin_login')
+    if 'admin' not in session and 'dealer' not in session:
+        return redirect('/')
+    
     if request.method == 'POST':
         name, username, role = get_current_user()
         conn = get_db()
         cur = dict_cursor(conn)
+        
+        # Added dealer_id to the column list and values
         cur.execute("""INSERT INTO shipments
-        ("Part_Name","Part_Number","Model","Supplier_name","Date_sent",status,"Remark","PIC",category,"Customer_Concern",created_by,created_by_role,created_at)
-        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-        (request.form['part_name'], request.form['part_number'], request.form['model'],
+        (dealer_id, "Part_Name","Part_Number","Model","Supplier_name","Date_sent",status,"Remark","PIC",category,"Customer_Concern",created_by,created_by_role,created_at)
+        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+        (request.form['dealer_id'], request.form['part_name'], request.form['part_number'], request.form['model'],
          request.form['supplier'], request.form['date_sent'], request.form['status'],
          request.form['remark'], request.form['pic'], request.form['category'],
          request.form['customer_concern'], username, role, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        
         conn.commit()
         conn.close()
-        return redirect('/admin_dashboard')
-    html = get_base_style() + render_header() + f"""
+        
+        return redirect('/admin_dashboard' if 'admin' in session else '/dealer_dashboard')
+
+    html = get_base_style() + render_admin_header() + f"""
     <div class="page-wrap"><div class="card">
       <h2>&#10133; New Part / Shipment</h2><br>
       {shipment_form('/add_shipment', btn='Add Part')}
     </div></div>"""
     return render_template_string(html)
-
-
 @app.route('/edit_shipment/<int:slno>', methods=['GET', 'POST'])
 def edit_shipment(slno):
     if 'admin' not in session and 'dealer' not in session:
@@ -844,50 +911,27 @@ def edit_shipment(slno):
     conn = get_db()
     cur = dict_cursor(conn)
     if request.method == 'POST':
-        cur.execute("""UPDATE shipments SET
-        "Part_Name"=%s,"Part_Number"=%s,"Model"=%s,"Supplier_name"=%s,"Date_sent"=%s,status=%s,"Remark"=%s,"PIC"=%s,category=%s,"Customer_Concern"=%s
-        WHERE "Sl_No"=%s""",
-        (request.form['part_name'], request.form['part_number'], request.form['model'],
-         request.form['supplier'], request.form['date_sent'], request.form['status'],
-         request.form['remark'], request.form['pic'], request.form['category'],
-         request.form['customer_concern'], slno))
+        cur.execute("""UPDATE shipments SET 
+            dealer_id=%s, "Part_Name"=%s, "Part_Number"=%s, "Model"=%s, "Supplier_name"=%s, 
+            "Date_sent"=%s, status=%s, "Remark"=%s, "PIC"=%s, category=%s, "Customer_Concern"=%s
+            WHERE "Sl_No"=%s""",
+            (request.form['dealer_id'], request.form['part_name'], request.form['part_number'], 
+             request.form['model'], request.form['supplier'], request.form['date_sent'], 
+             request.form['status'], request.form['remark'], request.form['pic'], 
+             request.form['category'], request.form['customer_concern'], slno))
         conn.commit()
         conn.close()
         return redirect('/admin_dashboard' if 'admin' in session else '/dealer_dashboard')
+    
+    # GET logic...
     cur.execute('SELECT * FROM shipments WHERE "Sl_No"=%s', (slno,))
     shipment = cur.fetchone()
     conn.close()
-    s = dict(shipment)
-    back_link = '/admin_dashboard' if 'admin' in session else '/dealer_dashboard'
-    html = get_base_style() + render_header() + f"""
-    <div class="page-wrap"><div class="card">
-      <h2>&#9999;&#65039; Edit Shipment #{slno}</h2><br>
-      {shipment_form(f'/edit_shipment/{slno}', s, btn='Update Part')}
-      <br><a href="{back_link}" class="btn" style="background:rgba(42,106,191,0.15);color:var(--chrome-2);border:1px solid var(--border-light)">&#8592; Back</a>
-    </div></div>"""
-    return render_template_string(html)
-
-def get_summary_data():
-    conn = get_db()
-    cur = dict_cursor(conn)
-
-    cur.execute("""
-        SELECT 
-            "Part_Name",
-            "Model",
-            COUNT(*) as total_cases,
-            MAX(status) as latest_status,
-            STRING_AGG(CAST("Sl_No" AS TEXT), ',') as shipment_ids
-        FROM shipments
-        WHERE is_deleted=0
-        GROUP BY "Part_Name","Model"
-        ORDER BY "Part_Name"
-    """)
-
-    data = cur.fetchall()
-    conn.close()
-    return data
-
+    return render_template_string(get_base_style() + render_admin_header() + f"""
+        <div class="page-wrap"><div class="card">
+            <h2>Edit Shipment #{slno}</h2><br>
+            {shipment_form(f'/edit_shipment/{slno}', dict(shipment), btn='Update Part')}
+        </div></div>""")
 @app.route('/summary_dashboard')
 def summary_dashboard():
     if 'admin' not in session and 'dealer' not in session:
@@ -912,7 +956,7 @@ def summary_dashboard():
         </tr>
         """
 
-    html = get_base_style() + render_header() + f"""
+    html = get_base_style() + render_admin_header() + f"""
     <div class="page-wrap">
       <div class="card">
         <h2>&#128202; Summary Dashboard</h2>
@@ -1041,13 +1085,13 @@ def export_summary_pdf(shipment_ids):
             col_widths = [55, 210, 90, 50, 165]
             tbl = Table(table_data, colWidths=col_widths, repeatRows=1)
             tbl.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#162d50')),
-                ('TEXTCOLOR',  (0, 0), (-1, 0), colors.HexColor('#d4e8ff')),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#32a7b4')),
+                ('TEXTCOLOR',  (0, 0), (-1, 0), colors.HexColor('#d4feff')),
                 ('FONTNAME',   (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE',   (0, 0), (-1, 0), 7),
                 ('FONTSIZE',   (0, 1), (-1, -1), 7),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#f0f4ff'), colors.white]),
-                ('GRID',       (0, 0), (-1, -1), 0.4, colors.HexColor('#aaaacc')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#a4bcff'), colors.white]),
+                ('GRID',       (0, 0), (-1, -1), 0.4, colors.HexColor('#babad6')),
                 ('VALIGN',     (0, 0), (-1, -1), 'TOP'),
                 ('LEFTPADDING',  (0, 0), (-1, -1), 4),
                 ('RIGHTPADDING', (0, 0), (-1, -1), 4),
@@ -1089,13 +1133,20 @@ def export_summary_pdf(shipment_ids):
 # =========================================================
 @app.route('/delete_shipment/<int:slno>')
 def delete_shipment(slno):
-    if 'admin' not in session:
-        return redirect('/admin_login')
+    # Ensure BOTH admin and dealer can access this
+    if 'admin' not in session and 'dealer' not in session:
+        return redirect('/')
+    
     conn = get_db()
-    conn.cursor().execute('UPDATE shipments SET is_deleted=1 WHERE "Sl_No"=%s', (slno,))
+    cur = conn.cursor()
+    # Using soft delete (is_deleted=1) as per your database schema
+    cur.execute('UPDATE shipments SET is_deleted=1 WHERE "Sl_No"=%s', (slno,))
     conn.commit()
     conn.close()
-    return redirect('/admin_dashboard')
+    
+    # Redirect back to whoever deleted it
+    return redirect('/admin_dashboard' if 'admin' in session else '/dealer_dashboard')
+
 
 
 @app.route('/trash')
@@ -1124,7 +1175,7 @@ def trash():
                onclick="return confirm('Permanently delete?')">Delete Forever</a>
           </td></tr>"""
     pagination = "".join([f'<a href="?page={p}" class="{"active" if p==page else ""}">{p}</a>' for p in range(1, total_pages+1)])
-    html = get_base_style() + render_header() + f"""
+    html = get_base_style() + render_admin_header() + f"""
     <div class="page-wrap"><div class="card">
       <h2>&#128465;&#65039; Trash ({total_items} items)</h2>
       <div class="table-wrap"><table>
@@ -1326,7 +1377,7 @@ def view_discussion(shipment_id):
     </div>"""
 
     msg_count = len(discussions)
-    html = get_base_style() + render_header() + f"""
+    html = get_base_style() + render_admin_header() + f"""
     <div class="page-wrap">
       <div style="margin-bottom:12px">
         <a href="/export_discussion/{shipment_id}" class="btn btn-success">&#11015; Export to Excel</a>
@@ -1440,7 +1491,7 @@ def manage_admins():
             </form>"""}
           </td></tr>"""
     role_opts = "".join([f'<option value="{r}">{r}</option>' for r in ['QACAdmin','QICAdmin','ProductionAdmin']])
-    html = get_base_style() + render_header() + f"""
+    html = get_base_style() + render_admin_header() + f"""
     <div class="page-wrap">
       {alert_html}
       <div class="card">
@@ -1517,7 +1568,7 @@ def manage_users():
               <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete user?')">Delete</button>
             </form>
           </td></tr>"""
-    html = get_base_style() + render_header() + f"""
+    html = get_base_style() + render_admin_header() + f"""
     <div class="page-wrap">
       {alert_html}
       <div class="card">
