@@ -1,6 +1,3 @@
-
-
-
 from flask import Flask, render_template, render_template_string, session, redirect, url_for, request, jsonify
 import psycopg2
 import psycopg2.extras
@@ -15,1090 +12,835 @@ app.secret_key = "tkm_ntf_secret_2025"
 
 PER_PAGE = 10
 
-# =========================================================
-# POWER BI REPORT LINK — update this URL if it changes
-# =========================================================
-POWERBI_URL = "https://toyotakirloskar-my.sharepoint.com/:u:/r/personal/tkm02052_toyota-kirloskar_co_in/Documents/REPOTKM_TASK1.pbix?csf=1&web=1&e=gzhDaw"
-TOYOTA_LOGO = "data:image/png;base64,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YDs0lz1drrIM8urrZDj94lYf9HbZ5vZ/1vjw7WP/AFUdUWuqmf0yG57sq5WbbyxWylFNG6UtG7pBpIHIEHdyzn4KLNg+odmugqd9+vV2mrL/ADsLGwwUcjm0jDzaHEAF54ZIOMcB3k7xeuk1p6FjhZ9OXOskBwO0yMgafPI3z9PgtnptgOzSLHWWusnxz6ytkGf3SF71q2T7ObYAKbSNtfg5BqWmoPxkLluw0tdEwRsLWjzJ9VWrnfdl66qdV1Ec0rzwJa1oHADokED73qv93277SNTTuodN0EVCX/hZQ0zp58e05+IaFg2nY9tT1rXC434T0nWAE1N3qHGTB7tzi8Y8CAreUNFR0MIhoqSCliHJkMYY0e4L917/AIWZTmeQu9AtYbeMoWllpo2Q957Tvjp65UO6C6PukrC6Oqvkj9QVjTnEzNynaf8ALBO9+0SD4BS/Tww08DIKeJkMUbQ1jGNDWtA5AAcgvtFIw08UAxG3CptyvFddJOsq5S89+4eA3DyCIiLMo1ERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERfh22j9bg+YE7bR+twfMC5AacstZf7k63W/qzU9nnqGMcTmQRROlc1uAcuLWEAd5wO9evW7P9W09JQ1UVlrK2Ktgp5WOpIHyhpnAMUbiG433B8ZDRnhKzvcAiLrR22j9bg+YE7bR+twfMC5Nu2a69bTwTfdO7kz1UtLHEKVxkMkbGSO9DGQN2RpDsYIzg8Fk2HZfq25UlVW1dGLFRU7W5qru19NE5znFgaHFuB6TXAuOGNI9JzeCIurfbaP1uD5gTttH63B8wLkrdNn+tLbHJNVaZughio4q2WVlO57I4ZGb7XOcAQ30ckg8Rh2eRX3V7PdYUdpqLjW2KupBTvaJIJ6d8coYY5JDLukfgAieC7PAjHPOCLrP22j9bg+YE7bR+twfMC43IiLsj22j9bg+YE7bR+twfMC43IiLsj22j9bg+YE7bR+twfMC43IiLsj22j9bg+YE7bR+twfMC43IiLsj22j9bg+YE7bR+twfMC43IiLsj22j9bg+YE7bR+twfMC43IiLsj22j9bg+YE7bR+twfMC481dtuNJEJaq31dPGTuh8sLmjO612MkfqvYfY5p7wvxlp54WMfLBLG143mFzCA4ZIyPHi1w9oPgiLsZ22j9bg+YE7bR+twfMC4+3Wy3m0ua262mvoHOzuipp3xk4GeG8B3EfFY0tJVRMifLTTMbMCYi5hAeA4ty3x9Jrhw7wR3Ii7F9to/W4PmBO20frcHzAuOAY8jIa7GM8u7xXt0WjtXVsEU9Fpa+VUM271UkNBK9r95u83BDcHLeIx3Ii66dto/W4PmBO20frcHzAuRjtFaxaWh2kr80vxu5t0vpZzjHo8eR+BXx90dV5x92L1nd3/7hL+HOM/h5Z4Ii67dto/W4PmBFx3udBXWyuloLlRVNFVxECSCoidHIwkZ4tcARwIKIi/bT12rLDfqC929zW1dBUx1MJcMt3mODgCO8cOI8FIY256xDHMbTWxsfXvdHG0Ttjigc9rjTCMS7hiAaGAuBe1vAPHAiLURFvjNplW21z2h2mNPPtk7nB9IRVBnVuZTNMW8Jw/d3qKnfne3t5n4t1zmn0YttWpxq06pqLbZqi6AM3JiyeMsc2WWXIMUrSWl0rt6MkxuAbvNJaCoyREUg0m1m+0kNL2a02SKro6cQ0lWIpesgf2VtK6Vo6zcL3QxxtILSwbgLWtOSfqv2tXups92s0dlsVLbbuS6upoopnNlfmVwfl8rnBwkl6wYIAdGzhugtdHiIiIiIiIiIiIiIiIiIiIiIiIiIi32w7WNUWa3QUNLHbnRwxxR7z4XBz+qyGucWuGXbm5H4bsUfDebvL9zti1f9nvoo308YNNNSslEk5kjZIXFxDnSEucN70XO3i3GQcueXR2iIpJj2z6shOYKa1xYL3DEcrhvv3S5zg6Q9YSWNyH7wIABBAAGJUbVtRVEtG+amon9iD+zZkqC9he1zXkydbvucWuIDnOJZnLC0klaCiIpJZtp1nGxrIHUkIDo3ODOt9PcAABy/8OAMtGATk4y5xPj1W0G5yMMVNb7fTxMqjU0+Gvc6AiJ8UW76W6DGxzQ1waHZijyTuDGnIiLc7ftFulLRx0ctrtFZTRMbEyKojkLBGBDmPdDwC1zqeJ7gebg7PB7gc+Ta5qSW3vt81HbJqWU70scrZn9c7q+qLpHOkLnkx4b6RI4A43gHKPURF6OpLvU369VF2q44mTz7u+I94j0WhuSXEucSBkucS5xJJJJJReciIv/Z"
+POWERBI_URL = "https://app.powerbi.com/links/4m-SFm0IN4?ctid=57b9390d-91d5-4fbd-8800-8fe81cc0529d&pbi_source=linkShare"
+
+# ── Inline SVG Toyota emblem (red & white, no external file needed) ──
+# ── Toyota emblem using official hosted SVG ──
 
 
+def toyota_logo_html():
+    return "https://www.carlogos.org/car-logos/toyota-logo.png"
+
+
+
 # =========================================================
-# FORMAL WHITE & RED THEME
+# BASE STYLE — White & Red, Premium Industrial UI
 # =========================================================
 def get_base_style():
     return """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
 :root {
-    --red-dark:    #8B0000;
-    --red-main:    #C8102E;
-    --red-light:   #E8294A;
-    --red-pale:    #FDECEA;
+    --red-900:     #4A0010;
+    --red-800:     #7A0020;
+    --red-700:     #A50029;
+    --red-600:     #C8102E;
+    --red-500:     #E8294A;
+    --red-400:     #F4647A;
+    --red-100:     #FEF0F2;
+    --red-50:      #FFF8F9;
+
     --white:       #FFFFFF;
-    --off-white:   #F7F7F7;
-    --gray-100:    #F2F2F2;
-    --gray-200:    #E5E5E5;
-    --gray-300:    #CCCCCC;
-    --gray-400:    #999999;
-    --gray-600:    #555555;
-    --gray-800:    #222222;
-    --text-main:   #1A1A1A;
-    --text-muted:  #666666;
-    --text-light:  #999999;
-    --border:      #DDDDDD;
-    --shadow-sm:   0 1px 3px rgba(0,0,0,0.08);
-    --shadow-md:   0 2px 8px rgba(0,0,0,0.10);
-    --shadow-lg:   0 4px 16px rgba(0,0,0,0.12);
+    --off-white:   #F6F6F8;
+    --gray-50:     #F2F2F5;
+    --gray-100:    #E8E8EE;
+    --gray-200:    #D0D0DC;
+    --gray-300:    #B0B0C0;
+    --gray-400:    #888898;
+    --gray-500:    #606070;
+    --gray-600:    #404050;
+    --gray-700:    #282830;
+    --gray-800:    #18181E;
+
+    --text-main:   #1A1A22;
+    --text-muted:  #60607A;
+    --text-light:  #A0A0B8;
+    --border:      #E0E0EA;
+
+    --grad-red:    linear-gradient(135deg, #A50029 0%, #C8102E 40%, #E8294A 70%, #C8102E 100%);
+    --grad-shine:  linear-gradient(135deg, #F8F8FC 0%, #E8E8F0 50%, #F8F8FC 100%);
+    --grad-card:   linear-gradient(145deg, #FFFFFF 0%, #F9F9FC 100%);
+
+    --shadow-sm:   0 1px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md:   0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06);
+    --shadow-lg:   0 8px 24px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
+    --shadow-red:  0 4px 20px rgba(200,16,46,0.25), 0 2px 8px rgba(200,16,46,0.15);
+    --shadow-inset: inset 0 1px 2px rgba(255,255,255,0.8), inset 0 -1px 2px rgba(0,0,0,0.06);
+
     --pbi-color:   #F2C811;
-    --pbi-dark:    #C9A100;
+    --radius-sm:   5px;
+    --radius-md:   8px;
+    --radius-lg:   12px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     background: var(--off-white);
     color: var(--text-main);
     min-height: 100vh;
-    font-size: 14px;
+    font-size: 13.5px;
+    background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(200,16,46,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(200,16,46,0.03) 0%, transparent 60%);
 }
 
-/* ── HEADER ── */
+/* ── HEADER — white background ── */
 .site-header {
-    background: var(--white);
-    border-bottom: 3px solid var(--red-main);
+    background: #FFFFFF;
+    border-bottom: 2px solid var(--red-600);
     padding: 0 28px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 62px;
+    height: 60px;
     position: sticky;
     top: 0;
     z-index: 100;
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 2px 12px rgba(200,16,46,0.10), 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .header-logo-wrap { display: flex; align-items: center; gap: 12px; }
-.header-logo-wrap img { height: 40px; }
-
 .header-brand { display: flex; flex-direction: column; line-height: 1.15; }
 .header-brand .brand-main {
-    font-family: 'Source Serif 4', serif;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--gray-800);
-    letter-spacing: 0.5px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.15rem;
+    color: var(--red-700);
+    letter-spacing: 2px;
 }
 .header-brand .brand-sub {
-    font-size: 0.65rem;
-    color: var(--red-main);
-    letter-spacing: 1.5px;
+    font-size: 0.6rem;
+    color: var(--red-400);
+    letter-spacing: 2px;
     text-transform: uppercase;
     font-weight: 600;
 }
-
 .header-divider {
-    width: 1px;
-    height: 32px;
-    background: var(--gray-200);
+    width: 1px; height: 32px;
+    background: linear-gradient(to bottom, transparent, var(--gray-200), transparent);
     margin: 0 16px;
 }
-
 .header-center-title {
-    font-family: 'Source Serif 4', serif;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--red-main);
-    letter-spacing: 0.5px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    color: var(--red-600);
+    letter-spacing: 3px;
 }
-
 .header-right-wrap { display: flex; align-items: center; gap: 10px; }
-
 .user-pill {
-    background: var(--gray-100);
-    border: 1px solid var(--gray-200);
-    border-radius: 4px;
+    background: var(--red-50);
+    border: 1px solid var(--red-100);
+    border-radius: var(--radius-sm);
     padding: 4px 12px;
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--red-700);
+    display: flex; align-items: center; gap: 6px;
 }
-
 .header-nav { display: flex; align-items: center; gap: 2px; }
 .header-nav a {
     color: var(--gray-600);
     text-decoration: none;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 500;
     padding: 5px 10px;
-    border-radius: 3px;
-    transition: all 0.15s;
-}
-.header-nav a:hover { background: var(--gray-100); color: var(--red-main); }
-.header-nav a.nav-danger { color: var(--red-main); }
-.header-nav a.nav-danger:hover { background: var(--red-pale); }
-
-/* ── POWER BI BUTTON (header) ── */
-.btn-powerbi {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    background: var(--pbi-color);
-    color: #1a1a1a !important;
-    border: 1px solid var(--pbi-dark);
-    border-radius: 4px;
-    font-size: 0.82rem;
-    font-weight: 700;
-    text-decoration: none;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
     letter-spacing: 0.3px;
-    transition: all 0.15s;
+}
+.header-nav a:hover { background: var(--red-50); color: var(--red-700); }
+.header-nav a.nav-danger { color: var(--red-600); }
+.header-nav a.nav-danger:hover { background: var(--red-100); color: var(--red-800); }
+
+/* ── POWER BI BUTTON ── */
+.btn-powerbi {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    background: linear-gradient(135deg, #F2C811, #E0B800);
+    color: #1a1a1a !important;
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: var(--radius-sm);
+    font-size: 0.76rem; font-weight: 700;
+    text-decoration: none; letter-spacing: 0.3px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(242,200,17,0.3);
 }
 .btn-powerbi:hover {
-    background: var(--pbi-dark) !important;
-    color: white !important;
-    border-color: var(--pbi-dark);
+    background: linear-gradient(135deg, #FFD733, #F2C811) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(242,200,17,0.4);
 }
-.btn-powerbi svg {
-    width: 14px; height: 14px; flex-shrink: 0;
-}
+.btn-powerbi svg { width: 14px; height: 14px; flex-shrink: 0; }
 
 /* ── ROLE TAGS ── */
 .role-tag {
     display: inline-block;
-    padding: 2px 10px;
-    border-radius: 3px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+    padding: 2px 10px; border-radius: var(--radius-sm);
+    font-size: 0.65rem; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    border: 1px solid transparent;
 }
-.role-QACAdmin    { background: var(--red-main); color: white; }
-.role-QICAdmin    { background: #1A4A8A; color: white; }
-.role-ProductionAdmin { background: #1A5A2A; color: white; }
-.role-General,.role-dealer,.role-Dealer,.role-QAC,.role-QIC,.role-Production,.role-Supplier,.role-TSD {
-    background: var(--gray-200); color: var(--gray-600);
-    border: 1px solid var(--gray-300);
+.role-QAC {
+    background: linear-gradient(135deg, var(--red-700), var(--red-600));
+    color: white;
+    border-color: var(--red-800);
+    box-shadow: 0 1px 4px rgba(200,16,46,0.3);
 }
+.role-TSD {
+    background: linear-gradient(135deg, #1A3A6A, #1A4A8A);
+    color: white;
+    border-color: #0E2A5A;
+    box-shadow: 0 1px 4px rgba(26,74,138,0.3);
+}
+.role-General { background: linear-gradient(135deg, #1A3A6A, #1A4A8A); color: white; }
 
 /* ── PAGE WRAP ── */
-.page-wrap { max-width: 1500px; margin: auto; padding: 20px 24px 70px; }
+.page-wrap { max-width: 1540px; margin: auto; padding: 18px 20px 70px; }
 
 /* ── CARD ── */
 .card {
-    background: var(--white);
+    background: var(--grad-card);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 20px 24px;
-    margin-bottom: 16px;
+    border-radius: var(--radius-md);
+    padding: 18px 22px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+}
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(200,16,46,0.15), transparent);
+}
+.card-title-bar {
+    border-bottom: 2px solid var(--red-600);
+    margin: -18px -22px 16px;
+    padding: 12px 22px;
+    background: linear-gradient(135deg, #FEF0F2 0%, #FFF8F9 60%, #F6F6F8 100%);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    position: relative;
+}
+.card-title-bar::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0; right: 0;
+    height: 2px;
+    background: var(--grad-red);
+}
+.card-title-bar h2, .card-title-bar h3 { color: var(--red-700); margin: 0; }
+
+/* ── TYPOGRAPHY ── */
+h1, h2, h3 { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; }
+h1 { font-size: 1.6rem; color: var(--gray-800); }
+h2 { font-size: 1.25rem; color: var(--red-700); }
+h3 { font-size: 1.05rem; color: var(--gray-600); }
+
+/* ── FILTER CARD ── */
+.filter-card {
+    background: var(--grad-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 16px;
+    margin-bottom: 12px;
     box-shadow: var(--shadow-sm);
 }
 
-.card-title-bar {
-    border-bottom: 2px solid var(--red-main);
-    margin: -20px -24px 16px;
-    padding: 14px 24px;
-    background: var(--gray-100);
-    border-radius: 6px 6px 0 0;
-}
-.card-title-bar h2, .card-title-bar h3 {
-    color: var(--red-dark);
-    margin: 0;
-}
-
-/* ── TYPOGRAPHY ── */
-h1, h2, h3 { font-family: 'Source Serif 4', serif; }
-h1 { font-size: 1.5rem; color: var(--gray-800); font-weight: 700; }
-h2 { font-size: 1.2rem; color: var(--red-dark); font-weight: 700; }
-h3 { font-size: 1.0rem; color: var(--gray-600); font-weight: 600; }
-
 /* ── FORMS ── */
-.form-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
-.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-row { display: flex; flex-wrap: wrap; gap: 7px; align-items: flex-end; }
+.form-group { display: flex; flex-direction: column; gap: 3px; }
 .form-group label {
-    font-size: 0.72rem;
-    font-weight: 600;
+    font-size: 0.65rem; font-weight: 700;
     color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    text-transform: uppercase; letter-spacing: 0.8px;
 }
-
 input[type=text],input[type=password],input[type=date],textarea,select {
-    padding: 7px 11px;
+    padding: 6px 10px;
     background: var(--white);
-    border: 1px solid var(--gray-300);
-    border-radius: 4px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
     color: var(--text-main);
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 0.88rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.83rem;
     transition: border 0.15s, box-shadow 0.15s;
+    box-shadow: var(--shadow-inset);
 }
 input:focus,textarea:focus,select:focus {
     outline: none;
-    border-color: var(--red-main);
-    box-shadow: 0 0 0 3px rgba(200,16,46,0.08);
+    border-color: var(--red-500);
+    box-shadow: 0 0 0 3px rgba(200,16,46,0.08), var(--shadow-inset);
 }
-select option { background: white; color: var(--text-main); }
 
 /* ── BUTTONS ── */
 .btn {
-    display: inline-block;
-    padding: 7px 16px;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 7px 15px;
     border: 1px solid transparent;
-    border-radius: 4px;
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 0.84rem;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.15s;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 0.2px;
 }
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+    transition: left 0.35s;
+}
+.btn:hover::before { left: 100%; }
+.btn:active { transform: translateY(1px); }
+
 .btn-primary {
-    background: var(--red-main);
+    background: var(--grad-red);
     color: white;
-    border-color: var(--red-main);
+    border-color: var(--red-700);
+    box-shadow: 0 2px 8px rgba(200,16,46,0.3), 0 1px 0 rgba(255,255,255,0.1) inset;
 }
-.btn-primary:hover { background: var(--red-dark); border-color: var(--red-dark); }
+.btn-primary:hover {
+    background: linear-gradient(135deg, #900025 0%, #B00028 40%, #D4203E 100%);
+    box-shadow: 0 4px 16px rgba(200,16,46,0.4);
+    transform: translateY(-1px);
+}
 .btn-success {
-    background: white;
-    color: #1A5A2A;
-    border-color: #1A5A2A;
-}
-.btn-success:hover { background: #F0FBF3; }
-.btn-danger {
-    background: white;
-    color: var(--red-main);
-    border-color: var(--red-main);
-}
-.btn-danger:hover { background: var(--red-pale); }
-.btn-warn {
-    background: white;
-    color: #7A4A00;
-    border-color: #C28800;
-}
-.btn-warn:hover { background: #FFFBF0; }
-.btn-secondary {
-    background: var(--gray-100);
-    color: var(--gray-600);
-    border-color: var(--gray-300);
-}
-.btn-secondary:hover { background: var(--gray-200); }
-.btn-sm { padding: 3px 9px; font-size: 0.76rem; }
-
-/* ── CUMULATIVE BUTTON ── */
-.btn-cumulative {
-    background: #EEF4FF;
-    color: #1E3A8A;
-    border: 1px solid #93C5FD;
-    border-radius: 4px;
-    padding: 4px 10px;
-    font-size: 0.76rem;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    transition: all 0.15s;
-}
-.btn-cumulative:hover { background: #DBEAFE; border-color: #3B82F6; }
-
-/* ── CUMULATIVE ALL PARTS BUTTON (green variant) ── */
-.btn-cumulative-all {
-    background: #F0FDF4;
+    background: linear-gradient(135deg, #F0FDF4, #DCFCE7);
     color: #14532D;
-    border: 1px solid #86EFAC;
-    border-radius: 4px;
-    padding: 6px 14px;
-    font-size: 0.82rem;
-    font-weight: 700;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.15s;
-    letter-spacing: 0.3px;
+    border-color: #86EFAC;
+    box-shadow: 0 1px 4px rgba(20,83,45,0.15), var(--shadow-inset);
 }
-.btn-cumulative-all:hover {
-    background: #DCFCE7;
+.btn-success:hover {
+    background: linear-gradient(135deg, #DCFCE7, #BBF7D0);
     border-color: #4ADE80;
-    box-shadow: 0 2px 8px rgba(34,197,94,0.18);
+    box-shadow: 0 3px 10px rgba(20,83,45,0.2);
+    transform: translateY(-1px);
 }
+.btn-danger {
+    background: linear-gradient(135deg, #FFF8F9, #FEF0F2);
+    color: var(--red-600);
+    border-color: var(--red-400);
+    box-shadow: 0 1px 4px rgba(200,16,46,0.12), var(--shadow-inset);
+}
+.btn-danger:hover {
+    background: var(--grad-red);
+    color: white;
+    border-color: var(--red-700);
+    box-shadow: 0 3px 12px rgba(200,16,46,0.35);
+    transform: translateY(-1px);
+}
+.btn-warn {
+    background: linear-gradient(135deg, #FFFBF0, #FFF8E1);
+    color: #7A4A00;
+    border-color: #FFD54F;
+    box-shadow: 0 1px 4px rgba(122,74,0,0.12), var(--shadow-inset);
+}
+.btn-warn:hover {
+    background: linear-gradient(135deg, #FFF8E1, #FFE082);
+    border-color: #FFC107;
+    box-shadow: 0 3px 10px rgba(122,74,0,0.2);
+    transform: translateY(-1px);
+}
+.btn-secondary {
+    background: var(--grad-shine);
+    color: var(--gray-600);
+    border-color: var(--gray-200);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06), var(--shadow-inset);
+}
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #F0F0F8, #E8E8F0);
+    border-color: var(--gray-300);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+.btn-info {
+    background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+    color: #1E40AF;
+    border-color: #93C5FD;
+    box-shadow: 0 1px 4px rgba(30,64,175,0.12), var(--shadow-inset);
+}
+.btn-info:hover {
+    background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
+    box-shadow: 0 3px 10px rgba(30,64,175,0.2);
+    transform: translateY(-1px);
+}
+.btn-sm { padding: 3px 9px; font-size: 0.73rem; }
+.btn-xs { padding: 2px 7px; font-size: 0.68rem; }
 
-/* ── CUMULATIVE MODAL (PI-based, existing) ── */
-.cum-modal-overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.55);
-    z-index: 9000;
-    align-items: center;
-    justify-content: center;
+/* ── TABLE — white header with red accent ── */
+.table-wrap {
+    overflow-x: auto;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-100);
+    box-shadow: var(--shadow-sm);
 }
-.cum-modal-overlay.open { display: flex; }
-.cum-modal {
-    background: var(--white);
-    border-radius: 8px;
-    border-top: 4px solid var(--red-main);
-    width: 96%;
-    max-width: 1100px;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.22);
-    overflow: hidden;
-}
-.cum-modal-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 20px;
-    background: var(--gray-100);
-    border-bottom: 1px solid var(--gray-200);
-    flex-shrink: 0;
-}
-.cum-modal-header h3 { margin: 0; color: var(--red-dark); font-size: 1rem; }
-.cum-modal-close {
-    background: none; border: none; font-size: 1.3rem;
-    cursor: pointer; color: var(--gray-600); padding: 2px 8px;
-    border-radius: 3px; line-height: 1;
-}
-.cum-modal-close:hover { background: var(--red-pale); color: var(--red-main); }
-.cum-modal-body {
-    overflow-y: auto;
-    padding: 16px 20px;
-    flex: 1;
-}
-
-/* ── ALL-PARTS CUMULATIVE MODAL (green accent) ── */
-.allparts-modal-overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.6);
-    z-index: 9100;
-    align-items: center;
-    justify-content: center;
-}
-.allparts-modal-overlay.open { display: flex; }
-.allparts-modal {
-    background: var(--white);
-    border-radius: 8px;
-    border-top: 4px solid #16A34A;
-    width: 98%;
-    max-width: 1300px;
-    max-height: 93vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.28);
-    overflow: hidden;
-}
-.allparts-modal-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 20px;
-    background: linear-gradient(90deg, #F0FDF4 0%, #fff 100%);
-    border-bottom: 1px solid #BBF7D0;
-    flex-shrink: 0;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-.allparts-modal-header h3 { margin: 0; color: #14532D; font-size: 1rem; flex: 1; }
-.allparts-modal-close {
-    background: none; border: none; font-size: 1.3rem;
-    cursor: pointer; color: var(--gray-600); padding: 2px 8px;
-    border-radius: 3px; line-height: 1;
-}
-.allparts-modal-close:hover { background: #DCFCE7; color: #14532D; }
-.allparts-modal-body {
-    overflow-y: auto;
-    flex: 1;
-}
-
-/* ── ALL-PARTS SUMMARY TABLE ── */
-.ap-summary-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-.ap-summary-table thead tr {
-    background: #F0FDF4;
-    border-bottom: 2px solid #16A34A;
-    position: sticky; top: 0; z-index: 2;
-}
-.ap-summary-table th {
-    padding: 10px 12px;
-    text-align: left;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #14532D;
-    border-right: 1px solid #BBF7D0;
-    white-space: nowrap;
-}
-.ap-summary-table th:last-child { border-right: none; }
-.ap-summary-table td {
-    padding: 9px 12px;
-    border-bottom: 1px solid #F0FDF4;
-    font-size: 0.82rem;
-    vertical-align: middle;
-    border-right: 1px solid #F3F4F6;
-}
-.ap-summary-table td:last-child { border-right: none; }
-.ap-summary-table tr:hover td { background: #F0FDF4; }
-.ap-summary-table tr.ap-expanded-row td { background: #F9FAFB; }
-
-/* Expand / collapse arrow */
-.ap-expand-btn {
-    background: none; border: none; cursor: pointer;
-    color: #16A34A; font-size: 0.9rem; padding: 2px 6px;
-    border-radius: 3px; transition: all 0.15s;
-    display: inline-flex; align-items: center; gap: 4px;
-    font-weight: 700; font-size: 0.75rem;
-}
-.ap-expand-btn:hover { background: #DCFCE7; }
-
-/* Inline discussion panel */
-.ap-disc-panel {
-    display: none;
-    padding: 0;
-}
-.ap-disc-panel.open { display: table-row; }
-.ap-disc-inner {
-    padding: 12px 16px 16px;
-    background: #FAFAFA;
-    border-top: 2px solid #16A34A;
-    border-bottom: 2px solid #E5E7EB;
-}
-
-/* Mini message rows inside expand panel */
-.ap-msg-list { display: flex; flex-direction: column; gap: 0; border: 1px solid #E5E7EB; border-radius: 4px; overflow: hidden; }
-.ap-msg-row {
-    display: grid;
-    grid-template-columns: 28px 120px 78px 72px 1fr;
-    align-items: stretch;
-    border-bottom: 1px solid #F3F4F6;
-    font-size: 0.8rem;
-    min-height: 36px;
-}
-.ap-msg-row:last-child { border-bottom: none; }
-.ap-msg-row:hover { background: #F0FDF4; }
-.ap-msg-cell {
-    padding: 6px 8px;
-    display: flex; align-items: center;
-    border-right: 1px solid #F3F4F6;
-    overflow: hidden;
-}
-.ap-msg-cell:last-child { border-right: none; }
-.ap-msg-num { justify-content: center; background: #F9FAFB; color: #9CA3AF; font-size: 0.68rem; font-weight: 700; }
-.ap-msg-author { flex-direction: column; align-items: flex-start; gap: 1px; }
-.ap-msg-name { font-weight: 700; color: #14532D; font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
-.ap-msg-handle { font-size: 0.65rem; color: #9CA3AF; }
-.ap-msg-role { justify-content: center; }
-.ap-msg-pi { justify-content: center; }
-.ap-msg-text-cell { flex-direction: column; gap: 2px; padding: 6px 10px; }
-.ap-msg-text { line-height: 1.5; color: var(--text-main); font-size: 0.81rem; white-space: pre-wrap; word-break: break-word; }
-.ap-msg-time { font-size: 0.67rem; color: #9CA3AF; }
-.ap-msg-deleted { color: #9CA3AF; font-style: italic; font-size: 0.78rem; }
-
-.ap-msg-header {
-    display: grid;
-    grid-template-columns: 28px 120px 78px 72px 1fr;
-    background: #E9FAF0;
-    border-bottom: 1px solid #BBF7D0;
-}
-.ap-msg-header-cell {
-    padding: 5px 8px;
-    font-size: 0.67rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.4px; color: #166534;
-    border-right: 1px solid #BBF7D0;
-}
-.ap-msg-header-cell:last-child { border-right: none; }
-
-/* Summary stat pills inside the all-parts table */
-.ap-stat-total {
-    display: inline-flex; align-items: center; gap: 3px;
-    background: #1E3A8A; color: white;
-    padding: 2px 9px; border-radius: 20px;
-    font-size: 0.72rem; font-weight: 700;
-}
-.ap-stat-active {
-    display: inline-flex; align-items: center; gap: 3px;
-    background: #14532D; color: white;
-    padding: 2px 9px; border-radius: 20px;
-    font-size: 0.72rem; font-weight: 700;
-}
-.ap-stat-deleted {
-    display: inline-flex; align-items: center; gap: 3px;
-    background: #F3F4F6; color: #9CA3AF; border: 1px solid #E5E7EB;
-    padding: 2px 9px; border-radius: 20px;
-    font-size: 0.72rem; font-weight: 600;
-}
-.ap-last-msg {
-    font-size: 0.78rem; color: var(--text-muted);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    max-width: 260px;
-}
-.ap-no-msg {
-    font-size: 0.75rem; color: #D1D5DB; font-style: italic;
-}
-
-/* Mini chat rows inside PI modal */
-.cum-chat-row {
-    display: grid;
-    grid-template-columns: 32px 120px 80px 80px 1fr;
-    align-items: stretch;
-    border-bottom: 1px solid var(--gray-200);
-    min-height: 40px;
-    font-size: 0.81rem;
-}
-.cum-chat-row:last-child { border-bottom: none; }
-.cum-chat-row:hover { background: #FFF5F6; }
-.cum-cell {
-    padding: 7px 9px;
-    display: flex;
-    align-items: center;
-    border-right: 1px solid var(--gray-200);
-    overflow: hidden;
-}
-.cum-cell:last-child { border-right: none; }
-.cum-cell-rownum {
-    justify-content: center;
-    color: var(--text-light);
-    font-size: 0.7rem;
-    font-weight: 600;
-    background: var(--gray-100);
-    flex-shrink: 0;
-}
-.cum-cell-author { flex-direction: column; align-items: flex-start; gap: 1px; }
-.cum-author-name { font-weight: 700; font-size: 0.8rem; color: var(--red-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
-.cum-author-handle { font-size: 0.67rem; color: var(--text-light); white-space: nowrap; }
-.cum-cell-role { justify-content: center; }
-.cum-cell-pi { justify-content: center; }
-.cum-cell-message { flex-direction: column; align-items: flex-start; gap: 3px; padding: 7px 12px; }
-.cum-msg-text { line-height: 1.5; color: var(--text-main); font-size: 0.83rem; white-space: pre-wrap; word-break: break-word; width: 100%; }
-.cum-msg-meta { font-size: 0.68rem; color: var(--text-light); }
-.cum-section-divider {
-    background: linear-gradient(90deg, var(--red-pale) 0%, #fff 100%);
-    border-bottom: 1px solid var(--gray-200);
-    padding: 6px 12px;
-    font-size: 0.73rem;
-    font-weight: 700;
-    color: var(--red-dark);
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    display: flex; gap: 12px; align-items: center;
-}
-.cum-section-divider .cum-sec-badge { font-weight: 400; color: var(--text-muted); font-size: 0.7rem; text-transform: none; letter-spacing: 0; }
-.cum-header-row {
-    display: grid;
-    grid-template-columns: 32px 120px 80px 80px 1fr;
-    background: var(--gray-100);
-    border-bottom: 2px solid var(--red-main);
-    position: sticky; top: 0; z-index: 2;
-}
-.cum-header-cell {
-    padding: 7px 9px;
-    font-size: 0.7rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.5px;
-    color: var(--text-muted);
-    border-right: 1px solid var(--gray-200);
-    white-space: nowrap;
-}
-.cum-header-cell:last-child { border-right: none; }
-
-/* ── TABLE ── */
-.table-wrap { overflow-x: auto; border-radius: 4px; border: 1px solid var(--gray-200); }
-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 thead tr {
-    background: var(--gray-100);
-    border-bottom: 2px solid var(--red-main);
+    background: linear-gradient(135deg, #FFFFFF, #FFF0F2);
+    border-bottom: 2px solid var(--red-600);
 }
 th {
-    padding: 10px 12px;
-    text-align: left;
-    font-weight: 700;
-    font-size: 0.75rem;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    color: var(--text-muted);
+    padding: 10px 11px; text-align: left;
+    font-weight: 700; font-size: 0.68rem;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--red-700); white-space: nowrap;
+}
+td { padding: 8px 11px; border-bottom: 1px solid var(--gray-50); color: var(--text-main); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tbody tr { transition: all 0.15s; }
+tbody tr:hover td {
+    background: linear-gradient(135deg, #FFF8F9, #FFF5F6);
+}
+
+/* ── STATUS BADGES ── */
+.status-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px; font-size: 0.7rem;
+    font-weight: 700; letter-spacing: 0.3px;
     white-space: nowrap;
 }
-td {
-    padding: 9px 12px;
-    border-bottom: 1px solid var(--gray-100);
-    color: var(--text-main);
-    vertical-align: middle;
-}
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: var(--gray-100); }
-
-/* ── STATUS ── */
-.status-badge {
+.status-badge::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
     display: inline-block;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 0.73rem;
-    font-weight: 600;
-    letter-spacing: 0.3px;
 }
-.status-Open { background: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }
-.status-Inprogress { background: #FFF8E1; color: #E65100; border: 1px solid #FFD54F; }
-.status-InprogressTSD { background: #FFF3E0; color: #BF360C; border: 1px solid #FFAB91; }
-.status-Closed { background: #FFEBEE; color: #B71C1C; border: 1px solid #EF9A9A; }
+/* Open (default) */
+.status-Open {
+    background: linear-gradient(135deg, #FFF8E1, #FFF3CC);
+    color: #7A4A00;
+    border: 1px solid #FFD54F;
+}
+.status-Open::before { background: #F59E0B; box-shadow: 0 0 4px #F59E0B; }
+/* Open - QAC */
+.status-OpenQAC {
+    background: linear-gradient(135deg, #FEF0F2, #FFF8F9);
+    color: var(--red-700);
+    border: 1px solid var(--red-400);
+}
+.status-OpenQAC::before { background: var(--red-500); box-shadow: 0 0 4px var(--red-500); }
+/* Open - TSD */
+.status-OpenTSD {
+    background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+    color: #1E3A8A;
+    border: 1px solid #93C5FD;
+}
+.status-OpenTSD::before { background: #3B82F6; box-shadow: 0 0 4px #3B82F6; }
+/* Closed */
+.status-Closed {
+    background: linear-gradient(135deg, #F3F4F6, #E5E7EB);
+    color: #374151;
+    border: 1px solid #D1D5DB;
+}
+.status-Closed::before { background: #6B7280; }
 
 /* ── LEAD TIME BADGES ── */
 .lead-ok {
     display: inline-flex; align-items: center; gap: 4px;
-    background: #F0FDF4; color: #14532D; border: 1px solid #86EFAC;
-    padding: 2px 9px; border-radius: 20px;
-    font-size: 0.72rem; font-weight: 600;
+    background: linear-gradient(135deg, #F0FDF4, #DCFCE7);
+    color: #14532D; border: 1px solid #86EFAC;
+    padding: 3px 9px; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 600;
 }
 .lead-crossed {
     display: inline-flex; align-items: center; gap: 4px;
-    background: #FFF1F2; color: #9F1239; border: 1px solid #FDA4AF;
-    padding: 2px 9px; border-radius: 20px;
-    font-size: 0.72rem; font-weight: 700;
+    background: linear-gradient(135deg, #FFF1F2, #FEE2E2);
+    color: #9F1239; border: 1px solid #FDA4AF;
+    padding: 3px 9px; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 700;
     animation: pulse-red 2s infinite;
 }
 @keyframes pulse-red {
-    0%,100% { box-shadow: 0 0 0 0 rgba(200,16,46,0.18); }
+    0%,100% { box-shadow: 0 0 0 0 rgba(200,16,46,0.2); }
     50%      { box-shadow: 0 0 0 4px rgba(200,16,46,0.05); }
 }
 
 /* ── STATUS MINI COUNTS ── */
-.status-counts {
-    display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
-}
+.status-counts { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
 .sc-pill {
     display: inline-flex; align-items: center; gap: 3px;
     padding: 2px 7px; border-radius: 12px;
-    font-size: 0.68rem; font-weight: 700; white-space: nowrap;
+    font-size: 0.66rem; font-weight: 700; white-space: nowrap;
 }
-.sc-open     { background: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }
-.sc-inp      { background: #FFF8E1; color: #E65100; border: 1px solid #FFD54F; }
-.sc-inptsd   { background: #FFF3E0; color: #BF360C; border: 1px solid #FFAB91; }
-.sc-closed   { background: #FFEBEE; color: #B71C1C; border: 1px solid #EF9A9A; }
+.sc-open     { background: #FFF8E1; color: #7A4A00; border: 1px solid #FFD54F; }
+.sc-openqac  { background: #FEF0F2; color: var(--red-700); border: 1px solid var(--red-400); }
+.sc-opentsd  { background: #EFF6FF; color: #1E3A8A; border: 1px solid #93C5FD; }
+.sc-closed   { background: #F3F4F6; color: #374151; border: 1px solid #D1D5DB; }
+.sc-lead-ok      { background: #F0FDF4; color: #14532D; border: 1px solid #86EFAC; }
+.sc-lead-crossed { background: #FFF1F2; color: #9F1239; border: 1px solid #FDA4AF; }
 
 /* ── PAGINATION ── */
 .pagination { display: flex; gap: 4px; margin-top: 14px; flex-wrap: wrap; }
 .pagination a {
-    padding: 5px 11px;
-    border: 1px solid var(--gray-300);
-    border-radius: 3px;
-    text-decoration: none;
-    font-size: 0.8rem;
-    background: white;
-    color: var(--gray-600);
-    transition: all 0.12s;
+    padding: 5px 11px; border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm); text-decoration: none;
+    font-size: 0.78rem; background: var(--grad-shine); color: var(--gray-600);
+    transition: all 0.15s;
+    box-shadow: var(--shadow-inset);
 }
-.pagination a:hover { border-color: var(--red-main); color: var(--red-main); }
+.pagination a:hover {
+    border-color: var(--red-500); color: var(--red-600);
+    box-shadow: 0 2px 8px rgba(200,16,46,0.15);
+}
 .pagination a.active {
-    background: var(--red-main);
-    color: white;
-    border-color: var(--red-main);
+    background: var(--grad-red); color: white;
+    border-color: var(--red-700);
+    box-shadow: 0 2px 8px rgba(200,16,46,0.3);
 }
 
 /* ── ALERTS ── */
 .alert {
-    padding: 10px 14px;
-    border-radius: 4px;
-    margin-bottom: 14px;
-    font-size: 0.88rem;
-    border-left: 4px solid;
+    padding: 10px 14px; border-radius: var(--radius-sm);
+    margin-bottom: 14px; font-size: 0.85rem; border-left: 3px solid;
 }
 .alert-info    { background: #EEF4FF; border-color: #3B82F6; color: #1E3A8A; }
 .alert-success { background: #F0FDF4; border-color: #22C55E; color: #14532D; }
-.alert-danger  { background: var(--red-pale); border-color: var(--red-main); color: var(--red-dark); }
+.alert-danger  { background: #FEF0F2; border-color: var(--red-600); color: var(--red-800); }
 
-/* ── LOGIN PAGE ── */
-.login-wrap {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background: var(--off-white);
-}
+/* ── LOGIN PAGE — white card, red accents ── */
+.login-wrap { min-height: 100vh; display: flex; flex-direction: column; background: var(--off-white); }
 .login-header-bar {
-    width: 100%;
-    background: var(--white);
-    border-bottom: 3px solid var(--red-main);
-    padding: 0 28px;
-    height: 62px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: fixed;
-    top: 0;
-    z-index: 10;
-    box-shadow: var(--shadow-md);
+    width: 100%; background: #FFFFFF;
+    border-bottom: 2px solid var(--red-600);
+    padding: 0 28px; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: fixed; top: 0; z-index: 10;
+    box-shadow: 0 2px 12px rgba(200,16,46,0.10);
 }
 .login-content {
-    margin-top: 62px;
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    margin-top: 60px; flex: 1;
+    display: flex; align-items: center; justify-content: center;
     padding: 40px 20px;
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(200,16,46,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 50%, rgba(200,16,46,0.03) 0%, transparent 60%),
+        var(--off-white);
 }
 .login-card {
-    background: var(--white);
-    border: 1px solid var(--gray-200);
-    border-top: 4px solid var(--red-main);
-    border-radius: 6px;
-    padding: 36px 32px;
-    width: 100%;
-    max-width: 420px;
-    box-shadow: var(--shadow-lg);
+    background: #FFFFFF;
+    border: 1px solid var(--gray-100);
+    border-top: 3px solid var(--red-600);
+    border-radius: var(--radius-lg); padding: 36px 32px;
+    width: 100%; max-width: 420px;
+    box-shadow: 0 8px 32px rgba(200,16,46,0.10), 0 2px 8px rgba(0,0,0,0.06);
+    position: relative; overflow: hidden;
 }
-.login-logo-area { text-align: center; margin-bottom: 18px; }
-.login-logo-area img { height: 56px; }
+.login-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(200,16,46,0.15), transparent);
+}
+.login-logo-area { text-align: center; margin-bottom: 18px; display:flex; justify-content:center; }
 .login-title {
     text-align: center;
-    font-family: 'Source Serif 4', serif;
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: var(--gray-800);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    color: var(--red-700);
+    letter-spacing: 3px;
     margin-bottom: 4px;
 }
 .login-subtitle {
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    margin-bottom: 24px;
+    text-align: center; color: var(--text-muted);
+    font-size: 0.72rem; letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 24px;
 }
 .divider {
     height: 1px;
-    background: var(--gray-200);
+    background: linear-gradient(90deg, transparent, var(--gray-200), transparent);
     margin: 14px 0;
 }
 .field-group { margin-bottom: 14px; }
 .field-group label {
-    display: block;
-    font-size: 0.73rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 5px;
+    display: block; font-size: 0.68rem; font-weight: 700;
+    color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 5px;
 }
-.field-group input, .field-group select { width: 100%; }
+.field-group input, .field-group select {
+    width: 100%;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    color: var(--text-main);
+}
+.field-group input::placeholder { color: var(--text-light); }
+.field-group input:focus { border-color: var(--red-500); background: #FFFFFF; }
 .pw-wrap { position: relative; }
 .pw-wrap input { width: 100%; padding-right: 52px; }
 .pw-toggle {
     position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
     background: none; border: none; cursor: pointer;
-    color: var(--text-muted); font-size: 0.75rem; font-family: inherit;
+    color: var(--text-light); font-size: 0.72rem; font-family: inherit;
     padding: 2px 6px; border-radius: 3px;
 }
-.pw-toggle:hover { color: var(--red-main); background: var(--red-pale); }
+.pw-toggle:hover { color: var(--red-600); }
 .login-btn {
-    width: 100%; padding: 10px; margin-top: 8px;
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 0.95rem; font-weight: 700;
-    letter-spacing: 1px; text-transform: uppercase;
-    background: var(--red-main); color: white;
-    border: none; border-radius: 4px; cursor: pointer;
-    transition: all 0.15s;
+    width: 100%; padding: 11px; margin-top: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+    font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    background: var(--grad-red); color: white;
+    border: 1px solid var(--red-700); border-radius: var(--radius-sm); cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(200,16,46,0.25);
+    position: relative; overflow: hidden;
 }
-.login-btn:hover { background: var(--red-dark); }
-.login-links { text-align: center; margin-top: 16px; font-size: 0.82rem; color: var(--text-muted); }
-.login-links a { color: var(--red-main); text-decoration: none; font-weight: 500; }
-.login-links a:hover { text-decoration: underline; }
-
-/* ══════════════════════════════════════════════════════
-   CHAT / DISCUSSION  —  FULL-WIDTH EXCEL-STYLE ROWS
-   ══════════════════════════════════════════════════════ */
-.chat-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    max-height: 700px;
-    overflow-y: auto;
+.login-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transition: left 0.4s;
+}
+.login-btn:hover::before { left: 100%; }
+.login-btn:hover { box-shadow: 0 6px 24px rgba(200,16,46,0.4); transform: translateY(-1px); }
+.login-portal-choice {
+    display: flex; gap: 12px; margin-bottom: 20px;
+}
+.portal-btn {
+    flex: 1; padding: 16px 10px; border-radius: var(--radius-md);
     border: 1px solid var(--gray-200);
-    border-radius: 4px;
+    background: var(--gray-50); cursor: pointer;
+    text-align: center; transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+    text-decoration: none; display: block;
+}
+.portal-btn:hover { transform: translateY(-2px); }
+.portal-btn .portal-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
+.portal-btn .portal-label {
+    font-size: 0.9rem; font-weight: 700;
+    color: var(--text-main); display: block; letter-spacing: 1px;
+}
+.portal-btn .portal-sub { font-size: 0.68rem; color: var(--text-muted); display: block; margin-top: 3px; }
+.portal-btn.portal-qac { border-color: var(--red-400); }
+.portal-btn.portal-qac:hover { background: var(--red-50); box-shadow: 0 4px 20px rgba(200,16,46,0.15); }
+.portal-btn.portal-tsd { border-color: #93C5FD; }
+.portal-btn.portal-tsd:hover { background: #EFF6FF; box-shadow: 0 4px 20px rgba(26,74,138,0.15); }
+.login-links { text-align: center; margin-top: 16px; font-size: 0.78rem; color: var(--text-muted); }
+.login-links a { color: var(--red-600); text-decoration: none; font-weight: 500; }
+.login-links a:hover { color: var(--red-800); text-decoration: underline; }
+
+/* ── CHAT / DISCUSSION ── */
+.chat-container {
+    display: flex; flex-direction: column; gap: 0;
+    max-height: 700px; overflow-y: auto;
+    border: 1px solid var(--gray-100);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
     background: var(--white);
 }
-
 .chat-row {
     display: grid;
-    grid-template-columns: 36px 130px 90px 90px 1fr auto;
+    grid-template-columns: 36px 130px 90px 100px 1fr auto;
     align-items: stretch;
-    border-bottom: 1px solid var(--gray-200);
-    min-height: 44px;
-    transition: background 0.1s;
+    border-bottom: 1px solid var(--gray-50);
+    min-height: 44px; transition: background 0.12s;
 }
 .chat-row:last-child { border-bottom: none; }
-.chat-row:hover { background: #FFF5F6; }
-
+.chat-row:hover { background: linear-gradient(135deg, #FFF8F9, #FFF5F6); }
 .cell {
-    padding: 8px 10px;
-    display: flex;
-    align-items: center;
-    border-right: 1px solid var(--gray-200);
-    font-size: 0.83rem;
-    overflow: hidden;
+    padding: 8px 10px; display: flex; align-items: center;
+    border-right: 1px solid var(--gray-50);
+    font-size: 0.82rem; overflow: hidden;
 }
 .cell:last-child { border-right: none; }
-
 .cell-rownum {
-    justify-content: center;
-    color: var(--text-light);
-    font-size: 0.72rem;
-    font-weight: 600;
-    background: var(--gray-100);
-    flex-shrink: 0;
-    user-select: none;
+    justify-content: center; color: var(--text-light);
+    font-size: 0.7rem; font-weight: 700;
+    background: var(--gray-50); flex-shrink: 0; user-select: none;
+    font-family: 'JetBrains Mono', monospace;
 }
-
-.cell-author {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    min-width: 0;
-}
+.cell-author { flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
 .author-name {
-    font-weight: 700;
-    font-size: 0.82rem;
-    color: var(--red-dark);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
+    font-weight: 700; font-size: 0.81rem; color: var(--red-700);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
 }
-.author-handle {
-    font-size: 0.68rem;
-    color: var(--text-light);
-    white-space: nowrap;
-}
-
+.author-handle { font-size: 0.67rem; color: var(--text-light); white-space: nowrap; font-family: 'JetBrains Mono', monospace; }
 .cell-role { justify-content: center; }
 .cell-pi { justify-content: center; }
 .pi-badge {
-    background: #FFF8E1;
+    background: linear-gradient(135deg, #FFF8E1, #FFF3CC);
     border: 1px solid #FFD54F;
-    color: #7A4A00;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 0.72rem;
-    font-weight: 600;
-    white-space: nowrap;
+    color: #7A4A00; padding: 2px 8px; border-radius: var(--radius-sm);
+    font-size: 0.68rem; font-weight: 700; white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace;
 }
-
-.cell-message {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    padding: 8px 14px;
-}
+.cell-message { flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px 14px; }
 .msg-text {
-    line-height: 1.55;
-    color: var(--text-main);
-    font-size: 0.85rem;
-    white-space: pre-wrap;
-    word-break: break-word;
-    width: 100%;
+    line-height: 1.55; color: var(--text-main);
+    font-size: 0.84rem; white-space: pre-wrap;
+    word-break: break-word; width: 100%;
 }
-.msg-text.deleted-text {
-    color: var(--text-light);
-    font-style: italic;
-}
+.msg-text.deleted-text { color: var(--text-light); font-style: italic; }
 .msg-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.7rem;
-    color: var(--text-light);
-    flex-wrap: wrap;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.69rem; color: var(--text-light); flex-wrap: wrap;
 }
-.msg-time { white-space: nowrap; }
-.edited-tag {
-    font-style: italic;
-    color: var(--text-muted);
-    font-size: 0.69rem;
-}
-.deleted-by-tag {
-    color: var(--red-main);
-    font-size: 0.69rem;
-}
-
-.cell-actions {
-    gap: 4px;
-    flex-shrink: 0;
-    padding: 6px 10px;
-    min-width: 90px;
-    justify-content: flex-end;
-}
-
+.msg-time { white-space: nowrap; font-family: 'JetBrains Mono', monospace; }
+.edited-tag { font-style: italic; color: var(--text-muted); font-size: 0.67rem; }
+.deleted-by-tag { color: var(--red-500); font-size: 0.67rem; }
+.cell-actions { gap: 4px; flex-shrink: 0; padding: 6px 10px; min-width: 90px; justify-content: flex-end; }
 .bubble-edit-form {
-    width: 100%;
-    background: var(--gray-100);
-    border: 1px solid var(--gray-200);
-    border-radius: 4px;
-    padding: 8px;
-    margin-top: 6px;
+    width: 100%; background: var(--gray-50);
+    border: 1px solid var(--gray-100); border-radius: var(--radius-sm);
+    padding: 8px; margin-top: 6px;
 }
 
+/* ── CHAT HEADER — white with red text ── */
 .chat-header-row {
     display: grid;
-    grid-template-columns: 36px 130px 90px 90px 1fr auto;
-    background: var(--gray-100);
-    border-bottom: 2px solid var(--red-main);
-    position: sticky;
-    top: 0;
-    z-index: 2;
+    grid-template-columns: 36px 130px 90px 100px 1fr auto;
+    background: linear-gradient(135deg, #FFFFFF, #FFF0F2);
+    border-bottom: 2px solid var(--red-600);
+    position: sticky; top: 0; z-index: 2;
 }
 .chat-header-cell {
-    padding: 8px 10px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-muted);
-    border-right: 1px solid var(--gray-200);
+    padding: 8px 10px; font-size: 0.66rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--red-700); border-right: 1px solid var(--gray-100);
     white-space: nowrap;
 }
 .chat-header-cell:last-child { border-right: none; min-width: 90px; }
 
 /* ── ONEDRIVE BAR ── */
 .onedrive-bar {
-    background: #FFFBF0;
+    background: linear-gradient(135deg, #FFFBF0, #FFF8E1);
     border: 1px solid #FFD54F;
-    border-radius: 5px;
-    padding: 10px 16px;
-    margin-bottom: 14px;
+    border-radius: var(--radius-md); padding: 10px 16px; margin-bottom: 14px;
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgba(255,213,79,0.2);
 }
 .onedrive-bar label {
-    font-size: 0.73rem; font-weight: 700;
-    color: #7A4A00; text-transform: uppercase; letter-spacing: 0.8px;
-    white-space: nowrap;
+    font-size: 0.68rem; font-weight: 700; color: #7A4A00;
+    text-transform: uppercase; letter-spacing: 1px; white-space: nowrap;
 }
 .onedrive-bar input[type=text] { flex: 1; min-width: 260px; }
 
-/* ── POWER BI BANNER (dashboard) ── */
-.powerbi-banner {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
-    border: 1px solid #2a2a4a;
-    border-left: 4px solid var(--pbi-color);
-    border-radius: 6px;
-    padding: 14px 20px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    box-shadow: var(--shadow-md);
-}
-.powerbi-banner-left {
-    display: flex; align-items: center; gap: 12px;
-}
-.powerbi-banner-icon {
-    width: 36px; height: 36px;
-    background: var(--pbi-color);
-    border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-}
-.powerbi-banner-icon svg { width: 20px; height: 20px; }
-.powerbi-banner-text { display: flex; flex-direction: column; gap: 2px; }
-.powerbi-banner-title {
-    font-family: 'Source Serif 4', serif;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #ffffff;
-    letter-spacing: 0.3px;
-}
-.powerbi-banner-subtitle {
-    font-size: 0.74rem;
-    color: rgba(255,255,255,0.55);
-    letter-spacing: 0.3px;
-}
-.powerbi-open-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 8px 18px;
-    background: var(--pbi-color);
-    color: #1a1a1a;
-    border: none;
-    border-radius: 5px;
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 0.85rem;
-    font-weight: 700;
-    text-decoration: none;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    transition: all 0.15s;
-    white-space: nowrap;
-    cursor: pointer;
-}
-.powerbi-open-btn:hover {
-    background: #fff;
-    color: #1a1a1a;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(242,200,17,0.4);
-}
-.powerbi-open-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
-
-/* ── VIEW SWITCHER ── */
+/* ── VIEW SWITCHER — white with red accent ── */
 .view-switcher {
     position: fixed; bottom: 0; left: 0; right: 0;
     display: flex; z-index: 200;
-    border-top: 2px solid var(--gray-200);
-    box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+    border-top: 2px solid var(--red-600);
+    box-shadow: 0 -2px 12px rgba(200,16,46,0.10);
 }
 .view-switcher a {
     flex: 1; display: flex; align-items: center; justify-content: center;
     gap: 8px; padding: 12px 0;
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 0.88rem; font-weight: 600;
-    letter-spacing: 0.5px; text-transform: uppercase;
-    text-decoration: none; transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    text-decoration: none; transition: all 0.2s;
 }
 .view-switcher a.vs-normal {
-    background: var(--white); color: var(--gray-600);
-    border-right: 1px solid var(--gray-200);
+    background: #FFFFFF; color: var(--gray-500);
+    border-right: 1px solid var(--gray-100);
 }
 .view-switcher a.vs-normal:hover, .view-switcher a.vs-normal.vs-active {
-    background: var(--red-pale); color: var(--red-main);
+    background: var(--red-50); color: var(--red-600);
 }
-.view-switcher a.vs-summary { background: var(--gray-100); color: var(--gray-600); }
+.view-switcher a.vs-summary {
+    background: #FFFFFF; color: var(--gray-500);
+}
 .view-switcher a.vs-summary:hover, .view-switcher a.vs-summary.vs-active {
-    background: #E8F5E9; color: #1B5E20;
+    background: #F0FDF4; color: #16A34A;
 }
 
 /* ── SUMMARY EXPAND ROW ── */
 .summary-expand-row { display: none; }
 .summary-expand-row.open { display: table-row; }
 .expand-panel {
-    background: var(--gray-100);
-    border-top: 2px solid var(--red-main);
+    background: linear-gradient(135deg, #F9F9FC, #F4F4F8);
+    border-top: 2px solid var(--red-600);
     padding: 14px 16px;
 }
-.expand-panel table { border: 1px solid var(--gray-200); }
-.expand-panel thead tr { background: var(--red-pale); }
-.expand-panel th { color: var(--red-dark); }
+.expand-panel table { border: 1px solid var(--gray-100); }
+.expand-panel thead tr {
+    background: linear-gradient(135deg, #FFFFFF, #FFF0F2);
+    border-bottom: 2px solid var(--red-600);
+}
+.expand-panel th { color: var(--red-700); }
+
+/* ── AUTO PI BADGE ── */
+.auto-pi-display {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: linear-gradient(135deg, #FFF8E1, #FFF3CC);
+    border: 1px solid #FFD54F;
+    border-radius: var(--radius-md); padding: 10px 16px;
+    font-size: 0.9rem; font-weight: 700; color: #7A4A00;
+    box-shadow: 0 2px 8px rgba(255,213,79,0.2);
+}
+.auto-pi-display .pi-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.85rem; letter-spacing: 2px;
+    color: #9A6700;
+}
+.auto-pi-display strong { font-family: 'JetBrains Mono', monospace; }
+
+/* ── PI EXPAND ── */
+.pi-expand-row { display: none; }
+.pi-expand-row.open { display: table-row; }
+.pi-discussion-panel {
+    background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+    border-top: 2px solid #3B82F6;
+    padding: 12px 16px;
+}
+.pi-msg-item {
+    background: var(--white);
+    border: 1px solid var(--gray-100);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px; margin-bottom: 8px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.15s;
+}
+.pi-msg-item:hover { box-shadow: var(--shadow-md); }
+.pi-msg-item:last-child { margin-bottom: 0; }
+.pi-msg-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 6px; flex-wrap: wrap;
+}
+.pi-msg-body {
+    font-size: 0.83rem; color: var(--text-main);
+    line-height: 1.55; white-space: pre-wrap;
+}
+.pi-empty {
+    text-align: center; padding: 20px;
+    color: var(--text-light); font-size: 0.82rem;
+    font-style: italic;
+}
 
 /* ── MISC ── */
 code {
-    font-family: monospace; color: var(--red-dark);
-    background: var(--red-pale); padding: 1px 5px;
-    border-radius: 3px; font-size: 0.85em;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--red-700);
+    background: linear-gradient(135deg, #FEF0F2, #FFF8F9);
+    padding: 1px 5px;
+    border-radius: 3px; font-size: 0.82em;
+    border: 1px solid rgba(200,16,46,0.1);
 }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--gray-100); }
-::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--red-main); }
+::-webkit-scrollbar-track { background: var(--gray-50); }
+::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--red-500); }
 
 .section-header {
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 14px; padding-bottom: 10px;
-    border-bottom: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-100);
 }
 .record-count {
-    font-size: 0.8rem; color: var(--text-muted); font-weight: 400;
+    font-size: 0.75rem; color: var(--text-muted);
+    font-weight: 500; font-family: 'DM Sans', sans-serif;
 }
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.card { animation: fadeInUp 0.3s ease forwards; }
 </style>
 
 <script>
@@ -1108,83 +850,33 @@ function togglePW(inputId, btnId) {
     if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'Hide'; }
     else { inp.type = 'password'; btn.textContent = 'Show'; }
 }
-
 function toggleSummaryRow(rowId) {
     const row = document.getElementById(rowId);
     if (!row) return;
-    const allRows = document.querySelectorAll('.summary-expand-row');
-    allRows.forEach(r => {
-        if (r.id !== rowId) { r.classList.remove('open'); }
+    document.querySelectorAll('.summary-expand-row').forEach(r => {
+        if (r.id !== rowId) r.classList.remove('open');
     });
     row.classList.toggle('open');
 }
-
+function togglePIRow(rowId) {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    document.querySelectorAll('.pi-expand-row').forEach(r => {
+        if (r.id !== rowId) r.classList.remove('open');
+    });
+    row.classList.toggle('open');
+}
 function toggleEditForm(id) {
     const el = document.getElementById('ef-' + id);
     if (!el) return;
     el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
-
-/* ── CUMULATIVE MODAL (PI-based) ── */
-function openCumModal(piNumber) {
-    const overlay = document.getElementById('cum-modal-overlay');
-    const body    = document.getElementById('cum-modal-body');
-    const title   = document.getElementById('cum-modal-title');
-    if (!overlay || !body) return;
-    title.textContent = 'All Discussions — PI: ' + piNumber;
-    body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted)">Loading...</div>';
-    overlay.classList.add('open');
-    fetch('/api/cumulative_discussions?pi=' + encodeURIComponent(piNumber))
-        .then(r => r.json())
-        .then(data => { body.innerHTML = data.html; })
-        .catch(() => { body.innerHTML = '<div style="color:red;padding:20px">Failed to load discussions.</div>'; });
-}
-function closeCumModal() {
-    const overlay = document.getElementById('cum-modal-overlay');
-    if (overlay) overlay.classList.remove('open');
-}
-
-/* ── ALL-PARTS CUMULATIVE MODAL ── */
-function openAllPartsModal() {
-    const overlay = document.getElementById('allparts-modal-overlay');
-    const body    = document.getElementById('allparts-modal-body');
-    if (!overlay || !body) return;
-    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">&#128203; Loading all discussions...</div>';
-    overlay.classList.add('open');
-    fetch('/api/all_parts_discussions')
-        .then(r => r.json())
-        .then(data => { body.innerHTML = data.html; })
-        .catch(() => { body.innerHTML = '<div style="color:red;padding:20px">Failed to load.</div>'; });
-}
-function closeAllPartsModal() {
-    const overlay = document.getElementById('allparts-modal-overlay');
-    if (overlay) overlay.classList.remove('open');
-}
-
-/* Toggle inline discussion panel inside all-parts modal */
-function toggleApPanel(sid) {
-    const panel = document.getElementById('ap-panel-' + sid);
-    const btn   = document.getElementById('ap-btn-' + sid);
-    if (!panel) return;
-    const isOpen = panel.classList.contains('open');
-    // close all others
-    document.querySelectorAll('.ap-disc-panel').forEach(p => p.classList.remove('open'));
-    document.querySelectorAll('.ap-expand-btn').forEach(b => { b.textContent = '▶ View'; });
-    if (!isOpen) {
-        panel.classList.add('open');
-        if (btn) btn.textContent = '▼ Hide';
-    }
-}
-
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') { closeCumModal(); closeAllPartsModal(); }
-});
 </script>
 """
 
 
 # =========================================================
-# POWER BI HELPERS
+# HELPERS
 # =========================================================
 PBI_ICON_SVG = """<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect x="2" y="14" width="4" height="8" rx="1" fill="currentColor"/>
@@ -1196,60 +888,82 @@ PBI_ICON_SVG = """<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/
 def powerbi_header_btn():
     return f'<a href="{POWERBI_URL}" target="_blank" class="btn-powerbi">{PBI_ICON_SVG} Power BI</a>'
 
-
-
 def get_status_css_class(status):
-    if not status:
-        return 'status-Open'
-    clean = status.replace(' ', '').replace(':', '')
+    if not status: return 'status-Open'
+    clean = status.replace(' ', '').replace(':', '').replace('-', '')
     return f'status-{clean}'
-
 
 def status_badge(status):
     css = get_status_css_class(status or 'Open')
-    return f'<span class="status-badge {css}">{status or "Open"}</span>'
+    label = status or 'Open'
+    return f'<span class="status-badge {css}">{label}</span>'
 
 
 # =========================================================
-# LEAD TIME HELPERS
+# LEAD TIME
 # =========================================================
-def compute_lead_time(date_sent_str):
+def compute_lead_time_detail(date_sent_str):
     if not date_sent_str:
-        return None, False
+        return None, False, 0
     try:
         d = datetime.strptime(str(date_sent_str).strip(), "%Y-%m-%d")
         lead = d + timedelta(days=3)
-        is_crossed = datetime.now() > lead
-        return lead.strftime("%Y-%m-%d"), is_crossed
+        now = datetime.now()
+        diff = (now.date() - lead.date()).days
+        is_crossed = diff > 0
+        return lead.strftime("%Y-%m-%d"), is_crossed, diff
     except Exception:
-        return None, False
-
+        return None, False, 0
 
 def lead_time_badge(date_sent_str):
-    lead_date, crossed = compute_lead_time(date_sent_str)
+    lead_date, crossed, diff = compute_lead_time_detail(date_sent_str)
     if not lead_date:
-        return '<span style="color:var(--text-light);font-size:0.75rem">—</span>'
+        return '<span style="color:var(--text-light);font-size:0.73rem">—</span>'
     if crossed:
-        return f'<span class="lead-crossed">&#9888; Lead Time Crossed <small>({lead_date})</small></span>'
-    return f'<span class="lead-ok">&#10003; {lead_date}</span>'
-
+        days_over = diff
+        days_label = f"{days_over} day{'s' if days_over != 1 else ''} crossed"
+        return (f'<span class="lead-crossed">&#9888; {lead_date} &mdash; '
+                f'<strong>{days_label}</strong></span>')
+    elif diff == 0:
+        return f'<span class="lead-ok">&#9888; {lead_date} &mdash; Due today</span>'
+    else:
+        days_left = abs(diff)
+        days_label = f"{days_left} day{'s' if days_left != 1 else ''} left"
+        return f'<span class="lead-ok">&#10003; {lead_date} &mdash; {days_label}</span>'
 
 def status_counts_html(counts_dict):
     parts = []
     mapping = [
-        ('Open',             'sc-pill sc-open',   '&#11044;'),
-        ('Inprogress',       'sc-pill sc-inp',    '&#9654;'),
-        ('Inprogress : TSD', 'sc-pill sc-inptsd', '&#9654;'),
-        ('Closed',           'sc-pill sc-closed', '&#9632;'),
+        ('Open',       'sc-pill sc-open',    '&#11044;'),
+        ('Open - QAC', 'sc-pill sc-openqac', '&#11044;'),
+        ('Open - TSD', 'sc-pill sc-opentsd', '&#9654;'),
+        ('Closed',     'sc-pill sc-closed',  '&#9632;'),
     ]
     for status, css, icon in mapping:
         cnt = counts_dict.get(status, 0)
         if cnt:
-            label = 'TSD' if status == 'Inprogress : TSD' else status
-            parts.append(f'<span class="{css}">{icon} {label}: {cnt}</span>')
+            parts.append(f'<span class="{css}">{icon} {status}: {cnt}</span>')
     if not parts:
-        return '<span style="color:var(--text-light);font-size:0.75rem">—</span>'
+        return '<span style="color:var(--text-light);font-size:0.73rem">—</span>'
     return '<div class="status-counts">' + ''.join(parts) + '</div>'
+
+def lead_time_counts_html(cnt_ok, cnt_crossed):
+    parts = []
+    if cnt_ok:
+        parts.append(f'<span class="sc-pill sc-lead-ok">&#10003; On Track: {cnt_ok}</span>')
+    if cnt_crossed:
+        parts.append(f'<span class="sc-pill sc-lead-crossed">&#9888; Crossed: {cnt_crossed}</span>')
+    if not parts:
+        return '<span style="color:var(--text-light);font-size:0.73rem">—</span>'
+    return '<div class="status-counts">' + ''.join(parts) + '</div>'
+
+
+# =========================================================
+# AUTO-GENERATE PI NUMBER
+# =========================================================
+def generate_pi_number(shipment_id):
+    now = datetime.now()
+    return f"PI-{shipment_id:05d}-{now.strftime('%Y%m')}"
 
 
 # =========================================================
@@ -1257,11 +971,8 @@ def status_counts_html(counts_dict):
 # =========================================================
 def get_db():
     conn = psycopg2.connect(
-        host="localhost",
-        database="postgres",
-        user="TKM02052",
-        password="TUKA@2028",
-        port="5432"
+        host="localhost", database="postgres",
+        user="TKM02052", password="TUKA@2028", port="5432"
     )
     conn.autocommit = False
     return conn
@@ -1275,32 +986,31 @@ def init_db():
     cur = dict_cursor(conn)
     cur.execute("SELECT current_user, current_database();")
     print(cur.fetchone())
+
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS admins (
+    CREATE TABLE IF NOT EXISTS users (
         "Sl_No" SERIAL PRIMARY KEY,
-        name TEXT, username TEXT UNIQUE, password TEXT, role TEXT DEFAULT 'QACAdmin'
+        name TEXT, username TEXT UNIQUE, password TEXT,
+        portal TEXT DEFAULT 'TSD'
     )""")
-    cur.execute("SELECT COUNT(*) as cnt FROM admins")
+    cur.execute("SELECT COUNT(*) as cnt FROM users")
     if cur.fetchone()['cnt'] == 0:
-        default_admins = [
-            ("QAC Admin", "qacadmin", "qac123", "QACAdmin"),
-            ("QIC Admin", "qicadmin", "qic123", "QICAdmin"),
-            ("Production Admin", "prodadmin", "prod123", "ProductionAdmin"),
+        defaults = [
+            ("QAC Default", "qac001", "qac123", "QAC"),
+            ("TSD Default", "tsd001", "tsd123", "TSD"),
         ]
-        cur.executemany('INSERT INTO admins(name,username,password,role) VALUES(%s,%s,%s,%s)', default_admins)
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS dealers (
-        "Sl_No" SERIAL PRIMARY KEY,
-        name TEXT, username TEXT UNIQUE, password TEXT UNIQUE, department TEXT DEFAULT 'General'
-    )""")
+        cur.executemany('INSERT INTO users(name,username,password,portal) VALUES(%s,%s,%s,%s)', defaults)
+
     cur.execute("""
     CREATE TABLE IF NOT EXISTS shipments (
         "Sl_No" SERIAL PRIMARY KEY,
         dealer_id TEXT, "Part_Name" TEXT, "Part_Number" TEXT, "Model" TEXT,
         "Supplier_name" TEXT, "Date_sent" TEXT, "Customer_Concern" TEXT,
         status TEXT DEFAULT 'Open', "Remark" TEXT, "PIC" TEXT, category TEXT,
-        is_deleted INTEGER DEFAULT 0, created_by TEXT, created_by_role TEXT, created_at TEXT
+        is_deleted INTEGER DEFAULT 0, created_by TEXT, created_by_role TEXT, created_at TEXT,
+        onedrive_url TEXT
     )""")
+
     cur.execute("""
     CREATE TABLE IF NOT EXISTS "Discussion" (
         "Sl_No" SERIAL PRIMARY KEY, shipment_id INTEGER,
@@ -1309,71 +1019,56 @@ def init_db():
         is_deleted INTEGER DEFAULT 0, edited INTEGER DEFAULT 0,
         edited_at TEXT, edited_by TEXT
     )""")
-    try:
-        cur.execute("""
-            DO $$
-            BEGIN
-                IF EXISTS (
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_name='shipments' AND column_name='dealer_id' AND data_type != 'text'
-                ) THEN
-                    ALTER TABLE shipments ALTER COLUMN dealer_id TYPE TEXT USING dealer_id::TEXT;
-                END IF;
-            END$$;
-        """)
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        print("dealer_id migration note:", e)
+
     try:
         cur.execute('ALTER TABLE shipments ADD COLUMN IF NOT EXISTS onedrive_url TEXT')
         conn.commit()
     except Exception:
         conn.rollback()
+
+    try:
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS portal TEXT DEFAULT 'TSD'")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+
     conn.commit()
     conn.close()
 
 
 def get_current_user():
-    if 'admin' in session:
-        return session.get('admin_name', 'Admin'), session.get('admin_username', 'admin'), session.get('admin_role', 'Admin')
-    elif 'dealer' in session:
-        return session.get('dealer_name', 'User'), session.get('dealer_username', 'user'), session.get('dealer_department', 'General')
+    if 'user' in session:
+        return (session.get('user_name', 'User'),
+                session.get('user_username', 'user'),
+                session.get('user_portal', 'TSD'))
     return 'Unknown', 'unknown', 'Unknown'
 
 
 # =========================================================
-# HEADER RENDERERS
+# HEADER — white background
 # =========================================================
-def render_admin_header():
-    name, username, role = get_current_user()
-    is_admin = 'admin' in session
-    role_cls = ''.join(c for c in role if c.isalnum())
-    if is_admin:
-        nav = f"""
-        <a href="/admin_dashboard">Dashboard</a>
+def render_header():
+    name, username, portal = get_current_user()
+    role_cls = portal
+    nav = f"""
+        <a href="/dashboard">Dashboard</a>
         <a href="/add_shipment">+ New Part</a>
-        <a href="/manage_admins">Members</a>
-        <a href="/manage_users">Users</a>
-        <a href="/trash">Closed OFP</a>
+        <a href="/closed_ofp">Closed OFP</a>
         {powerbi_header_btn()}
         <a href="/logout" class="nav-danger">Logout</a>
-        """
-    elif 'dealer' in session:
-        nav = f'<a href="/dealer_dashboard">Dashboard</a><a href="/add_shipment">+ New Part</a><a href="/trash">Closed OFP</a>{powerbi_header_btn()}<a href="/logout" class="nav-danger">Logout</a>'
-    else:
-        nav = '<a href="/">Login</a>'
-
+    """
     return f"""
     <div class="site-header">
-      <div class="header-logo-wrap">
-        <img src="{TOYOTA_LOGO}" alt="Toyota">
-        <div class="header-brand"></div>
-        <div class="header-divider"></div>
-        <div class="header-center-title">QAC Discussion Portal</div>
+      
+    <div class="login-logo-area">
+        <img src="{toyota_logo_html()}" 
+        style="height:48px; width:auto; filter: brightness(0) saturate(100%) invert(19%) sepia(96%) saturate(7486%) hue-rotate(348deg) brightness(94%) contrast(105%);">
+
+    </div>
+        <div class="header-center-title">NTF Discussion Portal</div>
       </div>
       <div class="header-right-wrap">
-        <span class="role-tag role-{role_cls}">{role}</span>
+        <span class="role-tag role-{role_cls}">{portal}</span>
         <span class="user-pill">&#128100; {name} &bull; {username}</span>
         <div class="header-nav">{nav}</div>
       </div>
@@ -1381,58 +1076,19 @@ def render_admin_header():
     """
 
 
-def render_dealer_header():
-    return render_admin_header()
-
-
 def render_login_header():
     return f"""
     <div class="login-header-bar">
-      <div class="header-logo-wrap">
-        <img src="{TOYOTA_LOGO}" alt="Toyota" style="height:38px">
-        <div class="header-brand"></div>
-      </div>
-      <div class="header-center-title">QAC Discussion Portal</div>
-      <div style="font-size:0.72rem;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;">NTF Discussion System</div>
+      
+    <div class="login-logo-area">
+        <img src="{toyota_logo_html()}" 
+        style="height:48px; width:auto; filter: brightness(0) saturate(100%) invert(19%) sepia(96%) saturate(7486%) hue-rotate(348deg) brightness(94%) contrast(105%);">
+
+    </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--red-700);letter-spacing:3px;">NTF Discussion Portal</div>
+      <div style="font-size:0.65rem;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;"></div>
     </div>
     """
-
-
-# =========================================================
-# MODAL HTML HELPERS
-# =========================================================
-def cum_modal_html():
-    """PI-based cumulative modal (existing)."""
-    return """
-    <div class="cum-modal-overlay" id="cum-modal-overlay" onclick="if(event.target===this)closeCumModal()">
-      <div class="cum-modal">
-        <div class="cum-modal-header">
-          <h3 id="cum-modal-title">All Discussions</h3>
-          <button class="cum-modal-close" onclick="closeCumModal()">&#10005;</button>
-        </div>
-        <div class="cum-modal-body" id="cum-modal-body"></div>
-      </div>
-    </div>"""
-
-
-def allparts_modal_html():
-    """New: All-parts cumulative discussion modal."""
-    return """
-    <div class="allparts-modal-overlay" id="allparts-modal-overlay"
-         onclick="if(event.target===this)closeAllPartsModal()">
-      <div class="allparts-modal">
-        <div class="allparts-modal-header">
-          <h3>&#128203; Cumulative Discussion Summary — All Parts</h3>
-          <div style="font-size:0.75rem;color:#4B5563;">
-            Each row shows message count. Click <strong>▶ View</strong> to expand messages inline.
-          </div>
-          <button class="allparts-modal-close" onclick="closeAllPartsModal()">&#10005;</button>
-        </div>
-        <div class="allparts-modal-body" id="allparts-modal-body">
-          <div style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</div>
-        </div>
-      </div>
-    </div>"""
 
 
 # =========================================================
@@ -1442,23 +1098,23 @@ def allparts_modal_html():
 def home():
     html = get_base_style() + render_login_header() + f"""
     <div class="login-content">
-    <div class="login-card">
-      <div class="login-logo-area"><img src="{TOYOTA_LOGO}" alt="Toyota Logo"></div>
-      <div class="login-title">QAC User Login</div>
-      <div class="login-subtitle">QAC Discussion Portal</div>
+    <div class="login-card" style="max-width:600px; height:400px;">
+      <div class="login-subtitle"></div>
       <div class="divider"></div>
-      <form method="POST" action="/login">
-        <div class="field-group"><label>Username</label>
-          <input type="text" name="username" required placeholder="Enter your username"></div>
-        <div class="field-group"><label>Password</label>
-          <div class="pw-wrap">
-            <input type="password" name="password" id="lp" required placeholder="Enter your password">
-            <button type="button" class="pw-toggle" id="lpt" onclick="togglePW('lp','lpt')">Show</button>
-          </div></div>
-        <button type="submit" class="login-btn">Login</button>
-      </form>
-      <div class="login-links">
-        <a href="/register">Register as User</a> &nbsp;&nbsp;|&nbsp;&nbsp; <a href="/admin_login">QAC Member Login</a>
+      <p style="text-align:center;font-size:0.82rem;color:var(--text-muted);margin-bottom:18px;letter-spacing:0.5px">
+        Select your portal to continue
+      </p>
+      <div class="login-portal-choice">
+        <a href="/login/qac" class="portal-btn portal-qac">
+          <span class="portal-icon">&#128269;</span>
+          <span class="portal-label">QAC</span>
+          <span class="portal-sub">Quality Assurance Cell</span>
+        </a>
+        <a href="/login/tsd" class="portal-btn portal-tsd">
+          <span class="portal-icon">&#128736;</span>
+          <span class="portal-label">TSD</span>
+          <span class="portal-sub">Technical Service Division</span>
+        </a>
       </div>
     </div>
     </div>
@@ -1466,136 +1122,140 @@ def home():
     return render_template_string(html)
 
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    error_msg = ""
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        name = request.form.get('name', '').strip()
-        password = request.form.get('password', '').strip()
-        dept = request.form.get('department', 'General')
-        if not username or not name or not password:
-            error_msg = "All fields are required."
-        else:
-            conn = get_db()
-            cur = dict_cursor(conn)
-            cur.execute("SELECT COUNT(*) as cnt FROM dealers WHERE username=%s", (username,))
-            if cur.fetchone()['cnt'] > 0:
-                conn.close()
-                error_msg = f"Username <strong>{username}</strong> is already taken."
-            else:
-                try:
-                    cur.execute("INSERT INTO dealers(name,username,password,department) VALUES(%s,%s,%s,%s)",
-                        (name, username, password, dept))
-                    conn.commit()
-                    conn.close()
-                    return redirect('/')
-                except Exception:
-                    conn.rollback()
-                    conn.close()
-                    error_msg = "Registration failed. Please try again."
+@app.route('/login/<portal_type>', methods=['GET', 'POST'])
+def login(portal_type):
+    portal_type = portal_type.upper()
+    if portal_type not in ('QAC', 'TSD'):
+        return redirect('/')
 
-    alert_html = f'<div class="alert alert-danger">{error_msg}</div>' if error_msg else ''
-    html = get_base_style() + render_login_header() + f"""
-    <div class="login-content">
-    <div class="login-card">
-      <div class="login-logo-area"><img src="{TOYOTA_LOGO}" alt="Toyota Logo"></div>
-      <div class="login-title">Register</div>
-      <div class="login-subtitle">Create your user account</div>
-      <div class="divider"></div>
-      {alert_html}
-      <form method="POST" action="/register">
-        <div class="field-group"><label>Full Name</label>
-          <input type="text" name="name" required placeholder="Your full name" value="{request.form.get('name','') if request.method=='POST' else ''}"></div>
-        <div class="field-group"><label>Username</label>
-          <input type="text" name="username" required placeholder="Choose a username" value="{request.form.get('username','') if request.method=='POST' else ''}"></div>
-        <div class="field-group"><label>Department</label>
-          <select name="department">
-            <option value="General">TSD</option>
-            <option value="QAC">QAC</option>
-            <option value="QIC">QIC</option>
-            <option value="Production">Production</option>
-            <option value="Dealer">Dealer</option>
-            <option value="Supplier">Supplier</option>
-          </select></div>
-        <div class="field-group"><label>Password</label>
-          <div class="pw-wrap">
-            <input type="password" name="rp" id="rp" required placeholder="Choose a password">
-            <button type="button" class="pw-toggle" id="rpt" onclick="togglePW('rp','rpt')">Show</button>
-          </div></div>
-        <button type="submit" class="login-btn">Register</button>
-      </form>
-      <div class="login-links"><a href="/">Back to Login</a></div>
-    </div></div>
-    """
-    return render_template_string(html)
-
-
-@app.route('/login', methods=['POST'])
-def login():
-    username = request.form.get('username', '').strip()
-    password = request.form.get('password', '').strip()
-    conn = get_db()
-    cur = dict_cursor(conn)
-    cur.execute("SELECT * FROM dealers WHERE username=%s AND password=%s", (username, password))
-    user = cur.fetchone()
-    conn.close()
-    if user:
-        session['dealer'] = user['Sl_No']
-        session['dealer_name'] = user['name']
-        session['dealer_username'] = user['username']
-        session['dealer_department'] = user['department']
-        return redirect('/dealer_dashboard')
-    return render_template_string(get_base_style() + render_login_header() + f"""
-        <div class="login-content"><div class="login-card">
-        <div class="login-logo-area"><img src="{TOYOTA_LOGO}" alt="Toyota Logo"></div>
-        <div class="login-title">QAC User Login</div>
-        <div class="login-subtitle">QAC Discussion Portal</div>
-        <div class="divider"></div>
-        <div class="alert alert-danger">Invalid username or password. <a href="/">Try again</a></div>
-        </div></div>""")
-
-
-@app.route('/admin_login', methods=['GET', 'POST'])
-def admin_login():
     error_msg = ""
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         conn = get_db()
         cur = dict_cursor(conn)
-        cur.execute("SELECT * FROM admins WHERE username=%s AND password=%s", (username, password))
-        admin = cur.fetchone()
+        cur.execute("SELECT * FROM users WHERE username=%s AND password=%s AND portal=%s",
+                    (username, password, portal_type))
+        user = cur.fetchone()
         conn.close()
-        if admin:
-            session['admin'] = admin['Sl_No']
-            session['admin_name'] = admin['name']
-            session['admin_username'] = admin['username']
-            session['admin_role'] = admin['role']
-            return redirect('/admin_dashboard')
-        error_msg = "Invalid credentials."
+        if user:
+            session['user'] = user['Sl_No']
+            session['user_name'] = user['name']
+            session['user_username'] = user['username']
+            session['user_portal'] = user['portal']
+            return redirect('/dashboard')
+        error_msg = "Invalid username or password."
 
     alert_html = f'<div class="alert alert-danger">{error_msg}</div>' if error_msg else ''
+    portal_label = 'QAC Portal' if portal_type == 'QAC' else 'TSD Portal'
+    portal_sub   = 'Quality Assurance Cell' if portal_type == 'QAC' else 'Technical Service Division'
+    other_type   = 'tsd' if portal_type == 'QAC' else 'qac'
+    other_label  = 'TSD Portal' if portal_type == 'QAC' else 'QAC Portal'
+
     html = get_base_style() + render_login_header() + f"""
     <div class="login-content">
     <div class="login-card">
-      <div class="login-logo-area"><img src="{TOYOTA_LOGO}" alt="Toyota Logo"></div>
-      <div class="login-title">QAC Member Login</div>
-      <div class="login-subtitle">QAC &bull; QIC &bull; Production</div>
+      
+    <div class="login-logo-area">
+        <img src="{toyota_logo_html()}" 
+        style="height:48px; width:auto; filter: brightness(0) saturate(100%) invert(19%) sepia(96%) saturate(7486%) hue-rotate(348deg) brightness(94%) contrast(105%);">
+
+    </div>
+      <div class="login-title">{portal_label}</div>
+      <div class="login-subtitle">{portal_sub}</div>
       <div class="divider"></div>
       {alert_html}
-      <form method="POST" action="/admin_login">
+      <form method="POST">
         <div class="field-group"><label>Username</label>
-          <input type="text" name="username" required placeholder="Member username"></div>
+          <input type="text" name="username" required placeholder="Enter your username"
+                 value="{request.form.get('username','') if request.method=='POST' else ''}"></div>
         <div class="field-group"><label>Password</label>
           <div class="pw-wrap">
-            <input type="password" name="password" id="ap" required placeholder="Member password">
-            <button type="button" class="pw-toggle" id="apt" onclick="togglePW('ap','apt')">Show</button>
+            <input type="password" name="password" id="lp" required placeholder="Enter your password">
+            <button type="button" class="pw-toggle" id="lpt" onclick="togglePW('lp','lpt')">Show</button>
           </div></div>
-        <button type="submit" class="login-btn">Login as Member</button>
+        <button type="submit" class="login-btn">Login &rarr;</button>
       </form>
-      <div class="login-links"><a href="/">QAC User Login</a></div>
-    </div></div>
+      <div class="login-links" style="margin-top:14px">
+        <a href="/register/{portal_type.lower()}">Register</a>
+        &nbsp;&bull;&nbsp;
+        <a href="/login/{other_type}">{other_label}</a>
+        &nbsp;&bull;&nbsp;
+        <a href="/">&#8592; Back</a>
+      </div>
+    </div>
+    </div>
+    """
+    return render_template_string(html)
+
+
+@app.route('/register/<portal_type>', methods=['GET', 'POST'])
+def register(portal_type):
+    portal_type = portal_type.upper()
+    if portal_type not in ('QAC', 'TSD'):
+        return redirect('/')
+
+    error_msg = ""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        name     = request.form.get('name', '').strip()
+        password = request.form.get('password', '').strip()
+        if not username or not name or not password:
+            error_msg = "All fields are required."
+        else:
+            conn = get_db()
+            cur = dict_cursor(conn)
+            cur.execute("SELECT COUNT(*) as cnt FROM users WHERE username=%s", (username,))
+            result = cur.fetchone()
+            if result and result['cnt'] > 0:
+                conn.close()
+                error_msg = f"Username <strong>{username}</strong> is already taken."
+            else:
+                try:
+                    cur.execute("INSERT INTO users(name,username,password,portal) VALUES(%s,%s,%s,%s)",
+                                (name, username, password, portal_type))
+                    conn.commit()
+                    conn.close()
+                    return redirect(f'/login/{portal_type.lower()}')
+                except Exception:
+                    conn.rollback()
+                    conn.close()
+                    error_msg = "Registration failed. Please try again."
+
+    alert_html = f'<div class="alert alert-danger">{error_msg}</div>' if error_msg else ''
+    portal_label = 'QAC Portal' if portal_type == 'QAC' else 'TSD Portal'
+    portal_sub   = 'Quality Assurance Cell' if portal_type == 'QAC' else 'Technical Service Division'
+
+    html = get_base_style() + render_login_header() + f"""
+    <div class="login-content">
+    <div class="login-card">
+      <div class="login-logo-area">
+        <img src="{toyota_logo_html()}" style="height:48px; width:auto;">
+      </div>
+
+      <div class="login-title">Register — {portal_label}</div>
+      <div class="login-subtitle">{portal_sub}</div>
+      <div class="divider"></div>
+      {alert_html}
+      <form method="POST">
+        <div class="field-group"><label>Full Name</label>
+          <input type="text" name="name" required placeholder="Your full name"
+                 value="{request.form.get('name','') if request.method=='POST' else ''}"></div>
+        <div class="field-group"><label>Username</label>
+          <input type="text" name="username" required placeholder="Choose a username"
+                 value="{request.form.get('username','') if request.method=='POST' else ''}"></div>
+        <div class="field-group"><label>Password</label>
+          <div class="pw-wrap">
+            <input type="password" name="password" id="rp" required placeholder="Choose a password">
+            <button type="button" class="pw-toggle" id="rpt" onclick="togglePW('rp','rpt')">Show</button>
+          </div></div>
+        <button type="submit" class="login-btn">Create Account &rarr;</button>
+      </form>
+      <div class="login-links">
+        <a href="/login/{portal_type.lower()}">Already have an account? Login</a>
+      </div>
+    </div>
+    </div>
     """
     return render_template_string(html)
 
@@ -1607,32 +1267,34 @@ def logout():
 
 
 # =========================================================
-# DASHBOARD HELPERS
+# DASHBOARD
 # =========================================================
-def build_shipment_table(shipments, is_admin):
+def build_shipment_table(shipments):
     rows = ""
     for idx, s in enumerate(shipments, start=1):
         current_status = s.get('status') or 'Open'
-        dealer_id_val = s.get('dealer_id') or ''
+        dealer_id_val  = s.get('dealer_id') or ''
         actions = f"""
-        <a href="{url_for('edit_shipment', slno=s['Sl_No'])}" class="btn btn-sm btn-warn">Edit</a>
+        <a href="{url_for('edit_shipment', slno=s['Sl_No'])}" class="btn btn-sm btn-warn">&#9998; Edit</a>
         <a href="{url_for('delete_shipment', slno=s['Sl_No'])}" class="btn btn-sm btn-danger"
-           onclick="return confirm('Move to Closed OFP ?')">Delete</a>
+           onclick="return confirm('Move to Closed OFP?')">&#10006; Close</a>
         """
+        lead_html = lead_time_badge(s.get('Date_sent') or '')
         rows += f"""
         <tr>
-          <td style="color:var(--text-muted);font-weight:600">{idx}</td>
-          <td>{s['Date_sent'] or ''}</td>
-          <td>{s['Model'] or ''}</td>
+          <td style="color:var(--text-light);font-weight:700;font-family:'JetBrains Mono',monospace;font-size:0.75rem">{idx}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem">{s['Date_sent'] or ''}</td>
+          <td><strong>{s['Model'] or ''}</strong></td>
           <td><code>{s['Part_Number'] or ''}</code></td>
           <td><strong>{s['Part_Name'] or ''}</strong></td>
           <td>{s['Supplier_name'] or ''}</td>
-          <td style="max-width:160px;white-space:normal;font-size:.8rem">{s['Customer_Concern'] or ''}</td>
-          <td>{s['PIC'] or ''}</td>
+          <td style="max-width:150px;white-space:normal;font-size:.78rem;color:var(--text-muted)">{s['Customer_Concern'] or ''}</td>
+          <td><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem">{s['PIC'] or ''}</span></td>
           <td>{s['category'] or ''}</td>
           <td>{s['Remark'] or ''}</td>
           <td>{status_badge(current_status)}</td>
-          <td style="color:var(--red-main);font-weight:600">{dealer_id_val}</td>
+          <td>{lead_html}</td>
+          <td style="color:var(--red-600);font-weight:700;font-family:'JetBrains Mono',monospace;font-size:0.78rem">{dealer_id_val}</td>
           <td><a href="{url_for('view_discussion', shipment_id=s['Sl_No'])}" class="btn btn-sm btn-success">&#128172; Discuss</a></td>
           <td>{actions}</td>
         </tr>"""
@@ -1645,37 +1307,34 @@ def build_filter_form(vals, action):
         for v in options:
             sel_attr = 'selected' if vals.get(field) == v else ''
             opts += f'<option value="{v}" {sel_attr}>{v}</option>'
-        return f'<select name="{field}">{opts}</select>'
+        return f'<select name="{field}" style="width:100%">{opts}</select>'
     return f"""
-    <form method="get" action="{action}" class="form-row">
-      <div class="form-group"><label>Search</label>
-        <input type="text" name="query" value="{vals.get('query','')}" placeholder="Part Name / Number" style="min-width:150px"></div>
-      <div class="form-group"><label>Model</label>
-        <input type="text" name="model" value="{vals.get('model','')}" placeholder="Model" style="width:90px"></div>
-      <div class="form-group"><label>Supplier</label>
-        <input type="text" name="supplier" value="{vals.get('supplier','')}" placeholder="Supplier" style="width:110px"></div>
-      <div class="form-group"><label>Date</label>
-        <input type="date" name="date_sent" value="{vals.get('date_sent','')}"></div>
-      <div class="form-group"><label>PI Number</label>
-        <input type="text" name="pic" value="{vals.get('pic','')}" placeholder="PI" style="width:90px"></div>
-      <div class="form-group"><label>Status</label>
-        {sel('Status','status',['Open','Inprogress','Inprogress : TSD','Closed'])}</div>
-      <div class="form-group"><label>Remark</label>
+    <form method="get" action="{action}" class="form-row" style="align-items:flex-end">
+      <div class="form-group" style="flex:1;min-width:110px"><label>Search</label>
+        <input type="text" name="query" value="{vals.get('query','')}" placeholder="Part Name / No." style="width:100%"></div>
+      <div class="form-group" style="width:80px"><label>Model</label>
+        <input type="text" name="model" value="{vals.get('model','')}" placeholder="Model" style="width:100%"></div>
+      <div class="form-group" style="width:100px"><label>Supplier</label>
+        <input type="text" name="supplier" value="{vals.get('supplier','')}" placeholder="Supplier" style="width:100%"></div>
+      <div class="form-group" style="width:130px"><label>Date</label>
+        <input type="date" name="date_sent" value="{vals.get('date_sent','')}" style="width:100%"></div>
+      <div class="form-group" style="width:80px"><label>PI No.</label>
+        <input type="text" name="pic" value="{vals.get('pic','')}" placeholder="PI" style="width:100%"></div>
+      <div class="form-group" style="width:110px"><label>Status</label>
+        {sel('Status','status',['Open','Open - QAC','Open - TSD','Closed'])}</div>
+      <div class="form-group" style="width:105px"><label>Remark</label>
         {sel('Remark','remark',['external','NTF','misjudgement'])}</div>
-      <div class="form-group"><label>Category</label>
+      <div class="form-group" style="width:105px"><label>Category</label>
         {sel('Category','category',['electrical','body','chassis','engine'])}</div>
       <div class="form-group"><label>&nbsp;</label>
-        <button type="submit" class="btn btn-primary">&#128269; Filter</button></div>
+        <button type="submit" class="btn btn-primary btn-sm">&#128269; Filter</button></div>
       <div class="form-group"><label>&nbsp;</label>
-        <a href="{action}" class="btn btn-secondary">Reset</a></div>
+        <a href="{action}" class="btn btn-secondary btn-sm">&#10006; Reset</a></div>
     </form>"""
 
 
-# =========================================================
-# DASHBOARDS
-# =========================================================
 def _dashboard_query(vals, page):
-    sql_base = 'FROM shipments WHERE is_deleted=0'
+    sql_base = "FROM shipments WHERE is_deleted=0 AND status != 'Closed'"
     params = []
     if vals['query']:
         sql_base += ' AND ("Part_Name" ILIKE %s OR "Part_Number" ILIKE %s)'
@@ -1705,88 +1364,46 @@ def _dashboard_query(vals, page):
     return shipments, total
 
 
-def _cumulative_dashboard_bar():
-    """Returns the green Cumulative button bar used on dashboards."""
-    return """
-    <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <button type="button" class="btn-cumulative-all" onclick="openAllPartsModal()">
-        &#128203; Cumulative Discussions — All Parts
-      </button>
-      <span style="font-size:0.75rem;color:var(--text-muted);">
-        View all discussion messages across every part in one place
-      </span>
-    </div>"""
-
-
-@app.route('/admin_dashboard')
-def admin_dashboard():
-    if 'admin' not in session:
-        return redirect('/admin_login')
-    vals = {k: request.args.get(k, '') for k in ['query','model','supplier','date_sent','pic','status','remark','category']}
-    page = int(request.args.get('page', 1))
-    shipments, total = _dashboard_query(vals, page)
-    total_pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
-    rows = build_shipment_table(shipments, True)
-    qs = '&'.join(f"{k}={v}" for k, v in vals.items() if v)
-    pagination = "".join([f'<a href="?page={p}&{qs}" class="{"active" if p==page else ""}">{p}</a>' for p in range(1, total_pages+1)])
-    html = get_base_style() + render_admin_header() + cum_modal_html() + allparts_modal_html() + f"""
-    <div class="page-wrap">
-      {_cumulative_dashboard_bar()}
-      <div class="card">{build_filter_form(vals, '/admin_dashboard')}</div>
-      <div class="card">
-        <div class="section-header">
-          <h2>&#128230; Shipments <span class="record-count">({total} records)</span></h2>
-        </div>
-        <div class="table-wrap"><table>
-          <thead><tr><th>SL</th><th>Date</th><th>Model</th><th>Part No.</th><th>Part Name</th>
-            <th>Supplier</th><th>Concern</th><th>PI Number</th><th>Category</th>
-            <th>Remark</th><th>Status</th><th>Dealer ID</th><th>Discussion</th><th>Actions</th></tr></thead>
-          <tbody>{rows}</tbody>
-        </table></div>
-        <div class="pagination">{pagination}</div>
-      </div>
-    </div>
-    <div class="view-switcher">
-      <a href="/admin_dashboard" class="vs-normal vs-active"><span>&#9776;</span> Normal View</a>
-      <a href="/summary_dashboard" class="vs-summary"><span>&#128202;</span> Summary View</a>
-    </div>
-    """
-    return render_template_string(html)
-
-
-@app.route('/dealer_dashboard')
-def dealer_dashboard():
-    if 'dealer' not in session:
+@app.route('/dashboard')
+def dashboard():
+    if 'user' not in session:
         return redirect('/')
     vals = {k: request.args.get(k, '') for k in ['query','model','supplier','date_sent','pic','status','remark','category']}
     page = int(request.args.get('page', 1))
     shipments, total = _dashboard_query(vals, page)
     total_pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
-    rows = build_shipment_table(shipments, True)
+    rows = build_shipment_table(shipments)
     qs = '&'.join(f"{k}={v}" for k, v in vals.items() if v)
-    pagination = "".join([f'<a href="?page={p}&{qs}" class="{"active" if p==page else ""}">{p}</a>' for p in range(1, total_pages+1)])
-    html = get_base_style() + render_dealer_header() + cum_modal_html() + allparts_modal_html() + f"""
+    pagination = "".join([
+        f'<a href="?page={p}&{qs}" class="{"active" if p==page else ""}">{p}</a>'
+        for p in range(1, total_pages + 1)
+    ])
+    html = get_base_style() + render_header() + f"""
     <div class="page-wrap">
-      {_cumulative_dashboard_bar()}
-      <div class="card">{build_filter_form(vals, '/dealer_dashboard')}</div>
+      <div class="filter-card">{build_filter_form(vals, '/dashboard')}</div>
       <div class="card">
         <div class="section-header">
-          <h2>&#128230; Available Parts <span class="record-count">({total} records)</span></h2>
+          <h2>&#128230; Shipments <span class="record-count">({total} records)</span></h2>
           <div style="display:flex;gap:8px;">
-            <a href="/add_shipment" class="btn btn-primary btn-sm">+ New Part</a>
-            <a href="/trash" class="btn btn-danger btn-sm">&#128465; Closed OFP</a>
+            <a href="/add_shipment" class="btn btn-primary btn-sm">&#10133; New Part</a>
+            <a href="/closed_ofp" class="btn btn-danger btn-sm">&#128465; Closed OFP</a>
           </div>
         </div>
         <div class="table-wrap"><table>
           <thead><tr>
             <th>SL</th><th>Date</th><th>Model</th><th>Part No.</th><th>Part Name</th>
             <th>Supplier</th><th>Concern</th><th>PI Number</th><th>Category</th>
-            <th>Remark</th><th>Status</th><th>Dealer ID</th><th>Discussion</th><th>Actions</th>
+            <th>Remark</th><th>Status</th><th>Lead Time</th><th>Dealer ID</th>
+            <th>Discussion</th><th>Actions</th>
           </tr></thead>
           <tbody>{rows}</tbody>
         </table></div>
         <div class="pagination">{pagination}</div>
       </div>
+    </div>
+    <div class="view-switcher">
+      <a href="/dashboard" class="vs-normal vs-active"><span>&#9776;</span> Normal View</a>
+      <a href="/summary_dashboard" class="vs-summary"><span>&#128202;</span> Summary View</a>
     </div>
     """
     return render_template_string(html)
@@ -1808,7 +1425,7 @@ def shipment_form(action, data=None, btn="Add Part"):
         o = "".join([f'<option value="{x}" {"selected" if str(cur)==str(x) else ""}>{x if x else "--Select--"}</option>' for x in opts])
         return f'<select name="{name}">{o}</select>'
 
-    status_options = ['Open', 'Inprogress', 'Inprogress : TSD', 'Closed']
+    status_options = ['Open', 'Open - QAC', 'Open - TSD']
     return f"""
     <form method="POST" action="{action}">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
@@ -1837,31 +1454,32 @@ def shipment_form(action, data=None, btn="Add Part"):
       <textarea name="customer_concern" rows="3" style="width:100%">{v('Customer_Concern')}</textarea></div>
     <div style="display:flex;gap:10px;margin-top:14px;">
       <button type="submit" class="btn btn-primary">{btn}</button>
-      <a href="/admin_dashboard" class="btn btn-secondary">Cancel</a>
+      <a href="/dashboard" class="btn btn-secondary">Cancel</a>
     </div>
     </form>"""
 
 
 @app.route('/add_shipment', methods=['GET', 'POST'])
 def add_shipment():
-    if 'admin' not in session and 'dealer' not in session:
+    if 'user' not in session:
         return redirect('/')
     if request.method == 'POST':
-        name, username, role = get_current_user()
+        name, username, portal = get_current_user()
         conn = get_db()
         cur = dict_cursor(conn)
         cur.execute("""INSERT INTO shipments
         (dealer_id,"Part_Name","Part_Number","Model","Supplier_name","Date_sent",status,"Remark","PIC",category,"Customer_Concern",created_by,created_by_role,created_at)
         VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-        (request.form['dealer_id'], request.form['part_name'], request.form['part_number'], request.form['model'],
-         request.form['supplier'], request.form['date_sent'], request.form['status'],
-         request.form['remark'], request.form['pic'], request.form['category'],
-         request.form['customer_concern'], username, role, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        (request.form['dealer_id'], request.form['part_name'], request.form['part_number'],
+         request.form['model'], request.form['supplier'], request.form['date_sent'],
+         request.form.get('status', 'Open'), request.form['remark'], request.form['pic'],
+         request.form['category'], request.form['customer_concern'],
+         username, portal, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
         conn.commit()
         conn.close()
-        return redirect('/admin_dashboard' if 'admin' in session else '/dealer_dashboard')
+        return redirect('/dashboard')
 
-    html = get_base_style() + render_admin_header() + f"""
+    html = get_base_style() + render_header() + f"""
     <div class="page-wrap"><div class="card">
       <div class="card-title-bar"><h2>&#10133; New Part / Shipment</h2></div>
       {shipment_form('/add_shipment', btn='Add Part')}
@@ -1871,7 +1489,7 @@ def add_shipment():
 
 @app.route('/edit_shipment/<int:slno>', methods=['GET', 'POST'])
 def edit_shipment(slno):
-    if 'admin' not in session and 'dealer' not in session:
+    if 'user' not in session:
         return redirect('/')
     conn = get_db()
     cur = dict_cursor(conn)
@@ -1886,15 +1504,178 @@ def edit_shipment(slno):
              request.form['category'], request.form['customer_concern'], slno))
         conn.commit()
         conn.close()
-        return redirect('/admin_dashboard' if 'admin' in session else '/dealer_dashboard')
+        return redirect('/dashboard')
     cur.execute('SELECT * FROM shipments WHERE "Sl_No"=%s', (slno,))
     shipment = cur.fetchone()
     conn.close()
-    return render_template_string(get_base_style() + render_admin_header() + f"""
+    return render_template_string(get_base_style() + render_header() + f"""
         <div class="page-wrap"><div class="card">
-          <div class="card-title-bar"><h2>Edit Shipment #{slno}</h2></div>
+          <div class="card-title-bar"><h2>&#9998; Edit Shipment #{slno}</h2></div>
           {shipment_form(f'/edit_shipment/{slno}', dict(shipment), btn='Update Part')}
         </div></div>""")
+
+
+# =========================================================
+# DELETE / STATUS CHANGE → Closed OFP
+# =========================================================
+@app.route('/delete_shipment/<int:slno>')
+def delete_shipment(slno):
+    if 'user' not in session:
+        return redirect('/')
+    conn = get_db()
+    conn.cursor().execute(
+        "UPDATE shipments SET is_deleted=1, status='Closed' WHERE \"Sl_No\"=%s", (slno,))
+    conn.commit()
+    conn.close()
+    return redirect('/dashboard')
+
+
+# =========================================================
+# CLOSED OFP
+# =========================================================
+@app.route('/closed_ofp')
+def closed_ofp():
+    if 'user' not in session:
+        return redirect('/')
+
+    vals = {k: request.args.get(k, '') for k in ['query','model','supplier','date_sent','pic','remark','category']}
+    page = int(request.args.get('page', 1))
+    offset = (page - 1) * PER_PAGE
+
+    sql_base = "FROM shipments WHERE (is_deleted=1 OR status='Closed')"
+    params = []
+    if vals['query']:
+        sql_base += ' AND ("Part_Name" ILIKE %s OR "Part_Number" ILIKE %s)'
+        params.extend([f"%{vals['query']}%"] * 2)
+    if vals['model']:
+        sql_base += ' AND "Model" ILIKE %s'; params.append(f"%{vals['model']}%")
+    if vals['supplier']:
+        sql_base += ' AND "Supplier_name" ILIKE %s'; params.append(f"%{vals['supplier']}%")
+    if vals['date_sent']:
+        sql_base += ' AND "Date_sent"=%s'; params.append(vals['date_sent'])
+    if vals['pic']:
+        sql_base += ' AND "PIC" ILIKE %s'; params.append(f"%{vals['pic']}%")
+    if vals['remark']:
+        sql_base += ' AND "Remark"=%s'; params.append(vals['remark'])
+    if vals['category']:
+        sql_base += ' AND category=%s'; params.append(vals['category'])
+
+    conn = get_db()
+    cur = dict_cursor(conn)
+    cur.execute(f'SELECT COUNT(*) as cnt {sql_base}', params)
+    total_items = cur.fetchone()['cnt']
+    total_pages = max(1, (total_items + PER_PAGE - 1) // PER_PAGE)
+    cur.execute(f'SELECT * {sql_base} ORDER BY "Sl_No" DESC LIMIT %s OFFSET %s',
+                params + [PER_PAGE, offset])
+    shipments = cur.fetchall()
+    conn.close()
+
+    qs = '&'.join(f"{k}={v}" for k, v in vals.items() if v)
+
+    def sel(name, field, options):
+        opts = '<option value="">All</option>'
+        for v_opt in options:
+            sel_attr = 'selected' if vals.get(field) == v_opt else ''
+            opts += f'<option value="{v_opt}" {sel_attr}>{v_opt}</option>'
+        return f'<select name="{field}" style="width:100%">{opts}</select>'
+
+    filter_form = f"""
+    <form method="get" action="/closed_ofp" class="form-row" style="align-items:flex-end">
+      <div class="form-group" style="flex:1;min-width:110px"><label>Search</label>
+        <input type="text" name="query" value="{vals.get('query','')}" placeholder="Part Name / No." style="width:100%"></div>
+      <div class="form-group" style="width:80px"><label>Model</label>
+        <input type="text" name="model" value="{vals.get('model','')}" placeholder="Model" style="width:100%"></div>
+      <div class="form-group" style="width:100px"><label>Supplier</label>
+        <input type="text" name="supplier" value="{vals.get('supplier','')}" placeholder="Supplier" style="width:100%"></div>
+      <div class="form-group" style="width:130px"><label>Date</label>
+        <input type="date" name="date_sent" value="{vals.get('date_sent','')}" style="width:100%"></div>
+      <div class="form-group" style="width:80px"><label>PI No.</label>
+        <input type="text" name="pic" value="{vals.get('pic','')}" placeholder="PI" style="width:100%"></div>
+      <div class="form-group" style="width:105px"><label>Remark</label>
+        {sel('remark','remark',['external','NTF','misjudgement'])}</div>
+      <div class="form-group" style="width:105px"><label>Category</label>
+        {sel('category','category',['electrical','body','chassis','engine'])}</div>
+      <div class="form-group"><label>&nbsp;</label>
+        <button type="submit" class="btn btn-primary btn-sm">&#128269; Filter</button></div>
+      <div class="form-group"><label>&nbsp;</label>
+        <a href="/closed_ofp" class="btn btn-secondary btn-sm">&#10006; Reset</a></div>
+    </form>"""
+
+    rows = ""
+    display_sl_start = total_items - offset
+    for idx, s in enumerate(shipments):
+        display_sl = display_sl_start - idx
+        action_btns = f"""
+        <a href="{url_for('permanent_delete_shipment', slno=s['Sl_No'])}" class="btn btn-sm btn-danger"
+           onclick="return confirm('Permanently delete this record?')">&#128465; Delete</a>
+        <a href="{url_for('view_discussion', shipment_id=s['Sl_No'])}" class="btn btn-sm btn-info">&#128172; View</a>"""
+        rows += f"""<tr>
+          <td style="color:var(--text-light);font-weight:700;font-family:'JetBrains Mono',monospace;font-size:0.73rem">{display_sl}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem">{s['Date_sent'] or ''}</td>
+          <td><strong>{s['Model'] or ''}</strong></td>
+          <td><code>{s['Part_Number'] or ''}</code></td>
+          <td><strong>{s['Part_Name'] or ''}</strong></td>
+          <td>{s['Supplier_name'] or ''}</td>
+          <td>{s['Remark'] or ''}</td>
+          <td>{s['category'] or ''}</td>
+          <td>{status_badge(s['status'] or 'Closed')}</td>
+          <td style="color:var(--red-600);font-weight:700;font-family:'JetBrains Mono',monospace;font-size:0.78rem">{s['dealer_id'] or ''}</td>
+          <td>{action_btns}</td></tr>"""
+
+    pagination = "".join([
+        f'<a href="?page={p}&{qs}" class="{"active" if p==page else ""}">{p}</a>'
+        for p in range(1, total_pages + 1)
+    ])
+    html = get_base_style() + render_header() + f"""
+    <div class="page-wrap">
+      <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;">
+        <a href="/dashboard" class="btn btn-secondary">&#8592; Dashboard</a>
+        <a href="{POWERBI_URL}" target="_blank" class="btn-powerbi">{PBI_ICON_SVG} Power BI</a>
+      </div>
+      <div class="filter-card">{filter_form}</div>
+      <div class="card">
+        <div class="card-title-bar">
+          <h2>&#128465; Closed OFP <span class="record-count">({total_items} items)</span></h2>
+        </div>
+        <p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:14px">
+          Permanently closed records. Use the Discussion button to view history.
+        </p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>#</th><th>Date</th><th>Model</th><th>Part No.</th><th>Part Name</th>
+            <th>Supplier</th><th>Remark</th><th>Category</th><th>Status</th><th>Dealer ID</th><th>Actions</th></tr></thead>
+          <tbody>{rows}</tbody>
+        </table></div>
+        <div class="pagination">{pagination}</div>
+      </div>
+    </div>"""
+    return render_template_string(html)
+
+
+@app.route('/permanent_delete_shipment/<int:slno>')
+def permanent_delete_shipment(slno):
+    if 'user' not in session:
+        return redirect('/')
+    conn = get_db()
+    conn.cursor().execute('DELETE FROM shipments WHERE "Sl_No"=%s', (slno,))
+    conn.commit()
+    conn.close()
+    return redirect('/closed_ofp')
+
+
+# =========================================================
+# UPDATE ONEDRIVE URL
+# =========================================================
+@app.route('/update_onedrive/<int:shipment_id>', methods=['POST'])
+def update_onedrive(shipment_id):
+    if 'user' not in session:
+        return redirect('/')
+    onedrive_url = request.form.get('onedrive_url', '').strip()
+    conn = get_db()
+    conn.cursor().execute('UPDATE shipments SET onedrive_url=%s WHERE "Sl_No"=%s',
+                          (onedrive_url, shipment_id))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('view_discussion', shipment_id=shipment_id))
 
 
 # =========================================================
@@ -1903,7 +1684,7 @@ def edit_shipment(slno):
 def get_summary_data(vals):
     conn = get_db()
     cur = dict_cursor(conn)
-    where_parts = ["is_deleted=0"]
+    where_parts = ["is_deleted=0", "status != 'Closed'"]
     params = []
     if vals.get('part_name'):
         where_parts.append('"Part_Name" ILIKE %s'); params.append(f"%{vals['part_name']}%")
@@ -1911,32 +1692,37 @@ def get_summary_data(vals):
         where_parts.append('"Model" ILIKE %s'); params.append(f"%{vals['model']}%")
 
     where_clause = " AND ".join(where_parts)
-
     sql = f"""
         SELECT
-            "Part_Name",
-            "Model",
-            COUNT(*) as total_cases,
-            COUNT(*) FILTER (WHERE status='Open')             AS cnt_open,
-            COUNT(*) FILTER (WHERE status='Inprogress')       AS cnt_inp,
-            COUNT(*) FILTER (WHERE status='Inprogress : TSD') AS cnt_inptsd,
-            COUNT(*) FILTER (WHERE status='Closed')           AS cnt_closed,
-            MIN("Date_sent") AS earliest_date
+            "Part_Name", "Model",
+            COUNT(*) AS total_cases,
+            COUNT(*) FILTER (WHERE status='Open')        AS cnt_open,
+            COUNT(*) FILTER (WHERE status='Open - QAC')  AS cnt_openqac,
+            COUNT(*) FILTER (WHERE status='Open - TSD')  AS cnt_opentsd,
+            COUNT(*) FILTER (WHERE status='Closed')      AS cnt_closed,
+            MIN("Date_sent") AS earliest_date,
+            COUNT(*) FILTER (
+                WHERE "Date_sent" IS NOT NULL AND "Date_sent" != ''
+                  AND (to_date("Date_sent", 'YYYY-MM-DD') + INTERVAL '3 days') < NOW()
+            ) AS cnt_lead_crossed,
+            COUNT(*) FILTER (
+                WHERE "Date_sent" IS NOT NULL AND "Date_sent" != ''
+                  AND (to_date("Date_sent", 'YYYY-MM-DD') + INTERVAL '3 days') >= NOW()
+            ) AS cnt_lead_ok,
+            COUNT(*) FILTER (WHERE "Date_sent" IS NULL OR "Date_sent" = '') AS cnt_no_date
         FROM shipments
         WHERE {where_clause}
         GROUP BY "Part_Name","Model"
     """
-
     having_parts = []
-    having_params = []
     if vals.get('status'):
-        status_col_map = {
-            'Open':             'cnt_open',
-            'Inprogress':       'cnt_inp',
-            'Inprogress : TSD': 'cnt_inptsd',
-            'Closed':           'cnt_closed',
+        col_map = {
+            'Open':       'cnt_open',
+            'Open - QAC': 'cnt_openqac',
+            'Open - TSD': 'cnt_opentsd',
+            'Closed':     'cnt_closed',
         }
-        col = status_col_map.get(vals['status'])
+        col = col_map.get(vals['status'])
         if col:
             having_parts.append(f"{col} > 0")
     if vals.get('total_cases'):
@@ -1944,11 +1730,9 @@ def get_summary_data(vals):
             having_parts.append(f"COUNT(*) = {int(vals['total_cases'])}")
         except ValueError:
             pass
-
     if having_parts:
         sql += " HAVING " + " AND ".join(having_parts)
     sql += ' ORDER BY total_cases DESC, "Part_Name"'
-
     cur.execute(sql, params)
     data = cur.fetchall()
     conn.close()
@@ -1958,11 +1742,20 @@ def get_summary_data(vals):
 def get_parts_for_group(part_name, model):
     conn = get_db()
     cur = dict_cursor(conn)
-    cur.execute("""
-        SELECT * FROM shipments
-        WHERE is_deleted=0 AND "Part_Name"=%s AND "Model"=%s
-        ORDER BY "Date_sent" DESC
-    """, (part_name, model))
+    cur.execute("""SELECT * FROM shipments
+        WHERE is_deleted=0 AND status != 'Closed' AND "Part_Name"=%s AND "Model"=%s
+        ORDER BY "Date_sent" DESC""", (part_name, model))
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+
+def get_discussions_for_shipment(shipment_id):
+    conn = get_db()
+    cur = dict_cursor(conn)
+    cur.execute("""SELECT * FROM "Discussion"
+        WHERE shipment_id=%s AND is_deleted=0
+        ORDER BY "Sl_No" ASC""", (shipment_id,))
     rows = cur.fetchall()
     conn.close()
     return rows
@@ -1970,7 +1763,7 @@ def get_parts_for_group(part_name, model):
 
 @app.route('/summary_dashboard')
 def summary_dashboard():
-    if 'admin' not in session and 'dealer' not in session:
+    if 'user' not in session:
         return redirect('/')
 
     vals = {
@@ -1981,7 +1774,7 @@ def summary_dashboard():
     }
     data = get_summary_data(vals)
 
-    status_options = ['Open', 'Inprogress', 'Inprogress : TSD', 'Closed']
+    status_options = ['Open', 'Open - QAC', 'Open - TSD', 'Closed']
     status_opts = '<option value="">All</option>'
     for v in status_options:
         sel_attr = 'selected' if vals.get('status') == v else ''
@@ -1993,40 +1786,80 @@ def summary_dashboard():
         part_name_safe = d['Part_Name'] or ''
         model_safe     = d['Model'] or ''
         earliest_date  = d['earliest_date'] or ''
-
-        lead_html = lead_time_badge(earliest_date)
+        lead_html      = lead_time_badge(earliest_date)
 
         counts = {
-            'Open':             d['cnt_open']   or 0,
-            'Inprogress':       d['cnt_inp']    or 0,
-            'Inprogress : TSD': d['cnt_inptsd'] or 0,
-            'Closed':           d['cnt_closed'] or 0,
+            'Open':       d.get('cnt_open') or 0,
+            'Open - QAC': d['cnt_openqac'] or 0,
+            'Open - TSD': d['cnt_opentsd'] or 0,
+            'Closed':     d['cnt_closed']  or 0,
         }
         sc_html = status_counts_html(counts)
+        lt_counts_html = lead_time_counts_html(d.get('cnt_lead_ok') or 0, d.get('cnt_lead_crossed') or 0)
 
         parts = get_parts_for_group(part_name_safe, model_safe)
+
         sub_rows = ""
-        for p in parts:
+        for p_idx, p in enumerate(parts):
+            pi_row_id = f"pi-{i}-{p_idx}"
+            discussions = get_discussions_for_shipment(p['Sl_No'])
+            disc_count = len(discussions)
+            disc_label = f"&#128172; {disc_count} msg{'s' if disc_count != 1 else ''}"
+            disc_btn_cls = 'btn-success' if disc_count > 0 else 'btn-secondary'
+
+            if disc_count == 0:
+                disc_items_html = '<div class="pi-empty">&#128172; No discussions yet for this PI</div>'
+            else:
+                disc_items_html = ""
+                for disc in discussions:
+                    author_role = disc['author_role'] or ''
+                    role_cls = ''.join(c for c in author_role if c.isalnum())
+                    disc_items_html += f"""
+                    <div class="pi-msg-item">
+                      <div class="pi-msg-header">
+                        <span class="role-tag role-{role_cls}" style="font-size:0.62rem">{author_role}</span>
+                        <strong style="font-size:0.8rem;color:var(--red-700)">{disc['author_name'] or 'Unknown'}</strong>
+                        <span style="font-size:0.68rem;color:var(--text-light);font-family:'JetBrains Mono',monospace">@{disc['author_username'] or ''}</span>
+                        <span class="pi-badge" style="font-size:0.65rem">{disc['pi_number'] or ''}</span>
+                        <span style="font-size:0.67rem;color:var(--text-light);margin-left:auto;font-family:'JetBrains Mono',monospace">{disc['created_at'] or ''}</span>
+                      </div>
+                      <div class="pi-msg-body">{disc['message'] or ''}</div>
+                    </div>"""
+
             sub_rows += f"""
             <tr>
               <td><code>{p['Part_Number'] or ''}</code></td>
               <td>{p['Supplier_name'] or ''}</td>
-              <td>{p['Date_sent'] or ''}</td>
+              <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem">{p['Date_sent'] or ''}</td>
               <td>{lead_time_badge(p['Date_sent'] or '')}</td>
-              <td>{p['PIC'] or ''}</td>
-              <td style="color:var(--red-main);font-weight:600">{p['dealer_id'] or ''}</td>
+              <td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem">{p['PIC'] or ''}</td>
+              <td style="color:var(--red-600);font-weight:700;font-family:'JetBrains Mono',monospace;font-size:0.78rem">{p['dealer_id'] or ''}</td>
               <td>{p['Remark'] or ''}</td>
               <td>{p['category'] or ''}</td>
               <td>{status_badge(p['status'] or 'Open')}</td>
-              <td style="max-width:160px;font-size:.79rem;white-space:normal">{p['Customer_Concern'] or ''}</td>
+              <td style="max-width:130px;font-size:.77rem;white-space:normal;color:var(--text-muted)">{p['Customer_Concern'] or ''}</td>
               <td>
-                <a href="{url_for('view_discussion', shipment_id=p['Sl_No'])}" class="btn btn-sm btn-success">&#128172; Discuss</a>
-                <a href="{url_for('edit_shipment', slno=p['Sl_No'])}" class="btn btn-sm btn-warn">Edit</a>
+                <button type="button" class="btn btn-xs {disc_btn_cls}"
+                  onclick="togglePIRow('{pi_row_id}')"
+                  title="View discussions for this PI">{disc_label} &#9660;</button>
+                <a href="{url_for('view_discussion', shipment_id=p['Sl_No'])}" class="btn btn-xs btn-info">&#128172; Open</a>
+                <a href="{url_for('edit_shipment', slno=p['Sl_No'])}" class="btn btn-xs btn-warn">&#9998;</a>
+              </td>
+            </tr>
+            <tr id="{pi_row_id}" class="pi-expand-row">
+              <td colspan="11" style="padding:0;background:linear-gradient(135deg,#EEF2FF,#E0E7FF)">
+                <div class="pi-discussion-panel">
+                  <div style="font-size:0.75rem;font-weight:700;color:#1E40AF;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+                    <span>&#128172; Discussion Thread — PI: <span style="font-family:'JetBrains Mono',monospace">{p['PIC'] or generate_pi_number(p['Sl_No'])}</span></span>
+                    <span style="font-weight:400;color:#3B82F6">({disc_count} message{'s' if disc_count != 1 else ''})</span>
+                  </div>
+                  {disc_items_html}
+                </div>
               </td>
             </tr>"""
 
         sub_table = f"""
-        <table style="width:100%;font-size:0.81rem">
+        <table style="width:100%;font-size:0.8rem">
           <thead><tr>
             <th>Part No.</th><th>Supplier</th><th>Date</th><th>Lead Time</th><th>PI Number</th>
             <th>Dealer ID</th><th>Remark</th><th>Category</th><th>Status</th>
@@ -2037,19 +1870,21 @@ def summary_dashboard():
 
         rows_html += f"""
         <tr style="cursor:pointer" onclick="toggleSummaryRow('{row_id}')"
-            title="Click to expand / collapse all parts">
-          <td><strong>{part_name_safe}</strong></td>
+            title="Click to expand all parts in this group">
+          <td><strong style="color:var(--text-main)">{part_name_safe}</strong></td>
           <td>{model_safe}</td>
-          <td style="font-weight:700;color:var(--red-main)">{d['total_cases']}</td>
+          <td style="font-weight:700;color:var(--red-600);font-family:'JetBrains Mono',monospace">{d['total_cases']}</td>
           <td>{sc_html}</td>
+          <td>{lt_counts_html}</td>
           <td>{lead_html}</td>
-          <td style="color:var(--text-muted);font-size:0.8rem">&#9660; Click to expand</td>
+          <td style="color:var(--text-light);font-size:0.77rem">&#9660; Expand</td>
         </tr>
         <tr id="{row_id}" class="summary-expand-row">
-          <td colspan="6" style="padding:0">
+          <td colspan="7" style="padding:0">
             <div class="expand-panel">
-              <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;font-weight:600">
-                All {len(parts)} record(s) for <strong>{part_name_safe}</strong> — {model_safe}
+              <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;font-weight:600">
+                {len(parts)} record(s) — <strong>{part_name_safe}</strong> / {model_safe}
+                <span style="color:var(--text-light);font-weight:400;margin-left:8px">Click &#128172; buttons to view inline discussions</span>
               </div>
               {sub_table}
             </div>
@@ -2057,53 +1892,38 @@ def summary_dashboard():
         </tr>"""
 
     if not rows_html:
-        rows_html = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No matching records found.</td></tr>'
+        rows_html = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">No matching records found.</td></tr>'
 
-    html = get_base_style() + render_admin_header() + cum_modal_html() + allparts_modal_html() + f"""
+    html = get_base_style() + render_header() + f"""
     <div class="page-wrap">
-      {_cumulative_dashboard_bar()}
-      <div class="card">
+      <div class="filter-card">
         <form method="get" action="/summary_dashboard" class="form-row">
-          <div class="form-group">
-            <label>Part Name</label>
-            <input type="text" name="part_name" value="{vals['part_name']}" placeholder="Part Name" style="min-width:160px">
-          </div>
-          <div class="form-group">
-            <label>Model</label>
-            <input type="text" name="model" value="{vals['model']}" placeholder="Model">
-          </div>
-          <div class="form-group">
-            <label>Total Cases</label>
-            <input type="text" name="total_cases" value="{vals['total_cases']}" placeholder="Count" style="width:90px">
-          </div>
-          <div class="form-group">
-            <label>Status</label>
-            <select name="status">{status_opts}</select>
-          </div>
+          <div class="form-group" style="flex:1;min-width:120px"><label>Part Name</label>
+            <input type="text" name="part_name" value="{vals['part_name']}" placeholder="Part Name" style="width:100%"></div>
+          <div class="form-group" style="width:90px"><label>Model</label>
+            <input type="text" name="model" value="{vals['model']}" placeholder="Model" style="width:100%"></div>
+          <div class="form-group" style="width:90px"><label>Total Cases</label>
+            <input type="text" name="total_cases" value="{vals['total_cases']}" placeholder="Count" style="width:100%"></div>
+          <div class="form-group" style="width:120px"><label>Status</label>
+            <select name="status" style="width:100%">{status_opts}</select></div>
           <div class="form-group"><label>&nbsp;</label>
-            <button type="submit" class="btn btn-primary">&#128269; Filter</button>
-          </div>
+            <button type="submit" class="btn btn-primary btn-sm">&#128269; Filter</button></div>
           <div class="form-group"><label>&nbsp;</label>
-            <a href="/summary_dashboard" class="btn btn-secondary">Reset</a>
-          </div>
+            <a href="/summary_dashboard" class="btn btn-secondary btn-sm">&#10006; Reset</a></div>
         </form>
       </div>
-
       <div class="card">
         <div class="section-header">
           <h2>&#128202; Summary View <span class="record-count">({len(data)} groups)</span></h2>
-          <span style="font-size:0.78rem;color:var(--text-muted)">Click any row to view all parts in that group</span>
+          <span style="font-size:0.75rem;color:var(--text-muted)">Click row to expand &bull; Click &#128172; to view PI discussions inline</span>
         </div>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Part Name</th>
-                <th>Model</th>
-                <th>Total Cases</th>
-                <th>Status Breakdown</th>
-                <th>Lead Time</th>
-                <th>Action</th>
+                <th>Part Name</th><th>Model</th><th>Total Cases</th>
+                <th>Status Breakdown</th><th>Lead Time Count</th>
+                <th>Earliest Lead</th><th>Action</th>
               </tr>
             </thead>
             <tbody>{rows_html}</tbody>
@@ -2111,9 +1931,8 @@ def summary_dashboard():
         </div>
       </div>
     </div>
-
     <div class="view-switcher">
-      <a href="/admin_dashboard" class="vs-normal"><span>&#9776;</span> Normal View</a>
+      <a href="/dashboard" class="vs-normal"><span>&#9776;</span> Normal View</a>
       <a href="/summary_dashboard" class="vs-summary vs-active"><span>&#128202;</span> Summary View</a>
     </div>
     """
@@ -2121,450 +1940,27 @@ def summary_dashboard():
 
 
 # =========================================================
-# DELETE / TRASH
+# DISCUSSION — status: Open → Open-QAC / Open-TSD on message
 # =========================================================
-@app.route('/delete_shipment/<int:slno>')
-def delete_shipment(slno):
-    if 'admin' not in session and 'dealer' not in session:
-        return redirect('/')
-    conn = get_db()
-    conn.cursor().execute('UPDATE shipments SET is_deleted=1 WHERE "Sl_No"=%s', (slno,))
-    conn.commit()
-    conn.close()
-    return redirect('/admin_dashboard' if 'admin' in session else '/dealer_dashboard')
-
-
-@app.route('/trash')
-def trash():
-    if 'admin' not in session and 'dealer' not in session:
-        return redirect('/')
-    is_admin = 'admin' in session
-    page = int(request.args.get('page', 1))
-    offset = (page - 1) * PER_PAGE
-    conn = get_db()
-    cur = dict_cursor(conn)
-    cur.execute('SELECT COUNT(*) as cnt FROM shipments WHERE is_deleted=1')
-    total_items = cur.fetchone()['cnt']
-    total_pages = max(1, (total_items + PER_PAGE - 1) // PER_PAGE)
-    cur.execute('SELECT * FROM shipments WHERE is_deleted=1 ORDER BY "Sl_No" DESC LIMIT %s OFFSET %s', (PER_PAGE, offset))
-    shipments = cur.fetchall()
-    conn.close()
-    rows = ""
-    display_sl_start = total_items - offset
-    for idx, s in enumerate(shipments):
-        display_sl = display_sl_start - idx
-        if is_admin:
-            action_btns = f"""
-            <a href="{url_for('restore_shipment', slno=s['Sl_No'])}" class="btn btn-sm btn-success">&#8635; Restore</a>
-            <a href="{url_for('permanent_delete_shipment', slno=s['Sl_No'])}" class="btn btn-sm btn-danger"
-               onclick="return confirm('Permanently delete?')">&#128465; Delete Forever</a>"""
-        else:
-            action_btns = f'<a href="{url_for("restore_shipment", slno=s["Sl_No"])}" class="btn btn-sm btn-success">&#8635; Restore</a>'
-        rows += f"""<tr>
-          <td style="color:var(--text-muted)">{display_sl}</td>
-          <td>{s['Date_sent'] or ''}</td><td>{s['Model'] or ''}</td>
-          <td><code>{s['Part_Number'] or ''}</code></td>
-          <td><strong>{s['Part_Name'] or ''}</strong></td>
-          <td>{s['Supplier_name'] or ''}</td>
-          <td>{status_badge(s['status'] or 'Open')}</td>
-          <td style="color:var(--red-main);font-weight:600">{s['dealer_id'] or ''}</td>
-          <td>{action_btns}</td></tr>"""
-    pagination = "".join([f'<a href="?page={p}" class="{"active" if p==page else ""}">{p}</a>' for p in range(1, total_pages+1)])
-    back_link = '/admin_dashboard' if is_admin else '/dealer_dashboard'
-    header_html = render_admin_header()
-    html = get_base_style() + header_html + f"""
-    <div class="page-wrap">
-      <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;">
-        <a href="{back_link}" class="btn btn-secondary">&#8592; Back to Dashboard</a>
-        <a href="{POWERBI_URL}" target="_blank" class="btn-powerbi">{PBI_ICON_SVG} Power BI Report</a>
-      </div>
-      <div class="card">
-        <div class="card-title-bar">
-          <h2>&#128465; Closed OFP <span class="record-count">({total_items} items)</span></h2>
-        </div>
-        <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:14px">
-          {"Admins can restore or permanently delete." if is_admin else "You can restore items back to the dashboard."}
-        </p>
-        <div class="table-wrap"><table>
-          <thead><tr><th>#</th><th>Date</th><th>Model</th><th>Part No.</th><th>Part Name</th><th>Supplier</th><th>Status</th><th>Dealer ID</th><th>Actions</th></tr></thead>
-          <tbody>{rows}</tbody>
-        </table></div>
-        <div class="pagination">{pagination}</div>
-      </div>
-    </div>"""
-    return render_template_string(html)
-
-
-@app.route('/restore_shipment/<int:slno>')
-def restore_shipment(slno):
-    if 'admin' not in session and 'dealer' not in session:
-        return redirect('/')
-    conn = get_db()
-    conn.cursor().execute('UPDATE shipments SET is_deleted=0 WHERE "Sl_No"=%s', (slno,))
-    conn.commit()
-    conn.close()
-    return redirect('/trash')
-
-
-@app.route('/permanent_delete_shipment/<int:slno>')
-def permanent_delete_shipment(slno):
-    if 'admin' not in session:
-        return redirect('/admin_login')
-    conn = get_db()
-    conn.cursor().execute('DELETE FROM shipments WHERE "Sl_No"=%s', (slno,))
-    conn.commit()
-    conn.close()
-    return redirect('/trash')
-
-
-# =========================================================
-# UPDATE ONEDRIVE URL
-# =========================================================
-@app.route('/update_onedrive/<int:shipment_id>', methods=['POST'])
-def update_onedrive(shipment_id):
-    if 'admin' not in session and 'dealer' not in session:
-        return redirect('/')
-    onedrive_url = request.form.get('onedrive_url', '').strip()
-    conn = get_db()
-    conn.cursor().execute('UPDATE shipments SET onedrive_url=%s WHERE "Sl_No"=%s', (onedrive_url, shipment_id))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('view_discussion', shipment_id=shipment_id))
-
-
-# =========================================================
-# API: CUMULATIVE DISCUSSIONS — PI number based (existing)
-# =========================================================
-@app.route('/api/cumulative_discussions')
-def api_cumulative_discussions():
-    if 'admin' not in session and 'dealer' not in session:
-        return jsonify({'html': '<div style="color:red;padding:20px">Unauthorized</div>'})
-
-    pi = request.args.get('pi', '').strip()
-    if not pi:
-        return jsonify({'html': '<div style="padding:20px;color:var(--text-muted)">No PI number specified.</div>'})
-
-    conn = get_db()
-    cur = dict_cursor(conn)
-    cur.execute("""
-        SELECT d.*, s."Part_Name", s."Part_Number", s."Model", s.dealer_id, s.status as shipment_status
-        FROM "Discussion" d
-        JOIN shipments s ON s."Sl_No" = d.shipment_id
-        WHERE d.pi_number = %s
-        ORDER BY d.shipment_id ASC, d."Sl_No" ASC
-    """, (pi,))
-    rows = cur.fetchall()
-    conn.close()
-
-    if not rows:
-        return jsonify({'html': f'<div style="padding:24px;text-align:center;color:var(--text-muted)">No discussions found for PI: <strong>{pi}</strong></div>'})
-
-    groups = OrderedDict()
-    for r in rows:
-        sid = r['shipment_id']
-        if sid not in groups:
-            groups[sid] = {'info': r, 'msgs': []}
-        groups[sid]['msgs'].append(r)
-
-    html_parts = ["""
-    <div class="cum-header-row">
-      <div class="cum-header-cell" style="justify-content:center">#</div>
-      <div class="cum-header-cell">Author</div>
-      <div class="cum-header-cell">Role</div>
-      <div class="cum-header-cell">PI Number</div>
-      <div class="cum-header-cell">Message</div>
-    </div>"""]
-
-    global_row = 0
-    for sid, grp in groups.items():
-        info = grp['info']
-        part_name = info.get('Part_Name') or '—'
-        part_no   = info.get('Part_Number') or '—'
-        model     = info.get('Model') or '—'
-        dealer_id = info.get('dealer_id') or '—'
-        s_status  = info.get('shipment_status') or 'Open'
-
-        section_label = f"{part_name} &nbsp;|&nbsp; <code>{part_no}</code> &nbsp;|&nbsp; {model} &nbsp;|&nbsp; Dealer: <strong style='color:var(--red-main)'>{dealer_id}</strong>"
-        status_html = f'<span class="status-badge {get_status_css_class(s_status)}" style="font-size:0.68rem">{s_status}</span>'
-
-        html_parts.append(f"""
-        <div class="cum-section-divider">
-          &#128230; {section_label}
-          <span class="cum-sec-badge">{status_html}</span>
-          <span class="cum-sec-badge">&#128172; {len(grp['msgs'])} message(s)</span>
-        </div>""")
-
-        for msg in grp['msgs']:
-            global_row += 1
-            deleted = msg['is_deleted'] == 1
-            author_role = msg['author_role'] or ''
-            role_cls = ''.join(c for c in author_role if c.isalnum())
-            display_role = 'TSD' if author_role == 'General' else author_role
-            pi_cell = f'<span class="pi-badge">{msg["pi_number"]}</span>' if msg.get('pi_number') else '—'
-
-            if deleted:
-                msg_html = '<span style="color:var(--text-light);font-style:italic">&#128465; Deleted</span>'
-            else:
-                msg_html = f'<span class="cum-msg-text">{msg["message"] or ""}</span>'
-
-            meta = f'<div class="cum-msg-meta">{msg["created_at"] or ""}</div>'
-            row_bg = 'background:#fafafa' if deleted else ''
-
-            html_parts.append(f"""
-            <div class="cum-chat-row" style="{row_bg}">
-              <div class="cum-cell cum-cell-rownum">{global_row}</div>
-              <div class="cum-cell cum-cell-author">
-                <span class="cum-author-name">{msg['author_name'] or 'Unknown'}</span>
-                <span class="cum-author-handle">@{msg['author_username'] or ''}</span>
-              </div>
-              <div class="cum-cell cum-cell-role">
-                <span class="role-tag role-{role_cls}" style="font-size:0.67rem">{display_role}</span>
-              </div>
-              <div class="cum-cell cum-cell-pi">{pi_cell}</div>
-              <div class="cum-cell cum-cell-message">
-                {msg_html}
-                {meta}
-              </div>
-            </div>""")
-
-    return jsonify({'html': ''.join(html_parts)})
-
-
-# =========================================================
-# API: ALL-PARTS CUMULATIVE DISCUSSIONS  ← NEW
-# Returns a summary table of every shipment with discussion
-# counts + inline expandable message rows.
-# =========================================================
-@app.route('/api/all_parts_discussions')
-def api_all_parts_discussions():
-    """Return a summary table of ALL shipments with their discussion messages,
-    grouped by shipment. Each row shows total / active / deleted message counts
-    and the last message preview. Clicking expands inline to show all messages."""
-    if 'admin' not in session and 'dealer' not in session:
-        return jsonify({'html': '<div style="color:red;padding:20px">Unauthorized</div>'})
-
-    conn = get_db()
-    cur = dict_cursor(conn)
-
-    # All shipments (not deleted) with their discussion counts
-    cur.execute("""
-        SELECT
-            s."Sl_No",
-            s."Part_Name",
-            s."Part_Number",
-            s."Model",
-            s.dealer_id,
-            s.status,
-            s."Date_sent",
-            s."PIC",
-            COUNT(d."Sl_No")                                          AS total_msgs,
-            COUNT(d."Sl_No") FILTER (WHERE d.is_deleted = 0)         AS active_msgs,
-            COUNT(d."Sl_No") FILTER (WHERE d.is_deleted = 1)         AS deleted_msgs,
-            MAX(d.created_at) FILTER (WHERE d.is_deleted = 0)        AS last_msg_at
-        FROM shipments s
-        LEFT JOIN "Discussion" d ON d.shipment_id = s."Sl_No"
-        WHERE s.is_deleted = 0
-        GROUP BY s."Sl_No", s."Part_Name", s."Part_Number", s."Model",
-                 s.dealer_id, s.status, s."Date_sent", s."PIC"
-        ORDER BY total_msgs DESC, s."Sl_No" DESC
-    """)
-    shipments = cur.fetchall()
-
-    # All discussions for all those shipments in one query
-    cur.execute("""
-        SELECT d.*, s."Part_Name"
-        FROM "Discussion" d
-        JOIN shipments s ON s."Sl_No" = d.shipment_id
-        WHERE s.is_deleted = 0
-        ORDER BY d.shipment_id ASC, d."Sl_No" ASC
-    """)
-    all_disc = cur.fetchall()
-    conn.close()
-
-    # Group discussions by shipment_id
-    disc_by_ship = OrderedDict()
-    for d in all_disc:
-        sid = d['shipment_id']
-        if sid not in disc_by_ship:
-            disc_by_ship[sid] = []
-        disc_by_ship[sid].append(d)
-
-    if not shipments:
-        return jsonify({'html': '<div style="padding:24px;text-align:center;color:var(--text-muted)">No shipments found.</div>'})
-
-    total_parts      = len(shipments)
-    total_all_msgs   = sum(s['total_msgs'] or 0 for s in shipments)
-    parts_with_disc  = sum(1 for s in shipments if (s['total_msgs'] or 0) > 0)
-
-    # ── Summary header bar ──
-    summary_bar = f"""
-    <div style="display:flex;gap:14px;align-items:center;padding:12px 16px;
-                background:#F0FDF4;border-bottom:2px solid #16A34A;flex-wrap:wrap;">
-      <div style="font-size:0.8rem;color:#14532D;">
-        <strong style="font-size:1.05rem">{total_parts}</strong> parts total
-      </div>
-      <div style="width:1px;height:20px;background:#86EFAC;"></div>
-      <div style="font-size:0.8rem;color:#14532D;">
-        <strong style="font-size:1.05rem">{parts_with_disc}</strong> have discussions
-      </div>
-      <div style="width:1px;height:20px;background:#86EFAC;"></div>
-      <div style="font-size:0.8rem;color:#14532D;">
-        <strong style="font-size:1.05rem">{total_all_msgs}</strong> total messages
-      </div>
-      <div style="margin-left:auto;font-size:0.73rem;color:#4B5563;">
-        &#9432; Click <strong>▶ View</strong> on any row to expand its messages
-      </div>
-    </div>"""
-
-    # ── Table ──
-    rows_html = ""
-    for s in shipments:
-        sid          = s['Sl_No']
-        part_name    = s['Part_Name'] or '—'
-        part_no      = s['Part_Number'] or '—'
-        model        = s['Model'] or '—'
-        dealer_id    = s['dealer_id'] or '—'
-        status       = s['status'] or 'Open'
-        total_msgs   = s['total_msgs'] or 0
-        active_msgs  = s['active_msgs'] or 0
-        deleted_msgs = s['deleted_msgs'] or 0
-        last_at      = s['last_msg_at'] or ''
-        pi_no        = s['PIC'] or '—'
-
-        # Stats
-        total_pill   = f'<span class="ap-stat-total">&#128172; {total_msgs}</span>' if total_msgs else '<span class="ap-no-msg">No messages</span>'
-        active_pill  = f'<span class="ap-stat-active">&#10003; {active_msgs} active</span>' if active_msgs else ''
-        deleted_pill = f'<span class="ap-stat-deleted">&#128465; {deleted_msgs} del</span>' if deleted_msgs else ''
-
-        # Status badge
-        status_html = f'<span class="status-badge {get_status_css_class(status)}" style="font-size:0.71rem">{status}</span>'
-
-        # Last message preview
-        msgs_for_ship = disc_by_ship.get(sid, [])
-        last_preview  = ''
-        if msgs_for_ship:
-            last_active = next((m for m in reversed(msgs_for_ship) if not m['is_deleted']), None)
-            if last_active:
-                preview_text = (last_active['message'] or '')[:60]
-                if len(last_active['message'] or '') > 60:
-                    preview_text += '…'
-                last_preview = f'<span class="ap-last-msg" title="{last_active["message"] or ""}">"{preview_text}"</span>'
-                last_preview += f'<br><span style="font-size:0.68rem;color:#9CA3AF;">{last_at}</span>'
-
-        # Expand button
-        expand_btn = f'<button class="ap-expand-btn" id="ap-btn-{sid}" onclick="toggleApPanel({sid})">&#9654; View</button>' if total_msgs else '<span style="color:#D1D5DB;font-size:0.75rem">—</span>'
-
-        rows_html += f"""
-        <tr>
-          <td style="font-weight:700;color:var(--red-dark);white-space:nowrap">{part_name}</td>
-          <td><code style="font-size:0.78rem">{part_no}</code></td>
-          <td style="color:var(--text-muted)">{model}</td>
-          <td style="color:var(--red-main);font-weight:600">{dealer_id}</td>
-          <td>{status_html}</td>
-          <td style="color:var(--text-muted);font-size:0.78rem">{pi_no}</td>
-          <td>
-            <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
-              {total_pill} {active_pill} {deleted_pill}
-            </div>
-          </td>
-          <td>{last_preview}</td>
-          <td>{expand_btn}</td>
-        </tr>"""
-
-        # ── Inline expandable discussion panel ──
-        if msgs_for_ship:
-            msg_rows = ""
-            for mnum, msg in enumerate(msgs_for_ship, 1):
-                deleted  = msg['is_deleted'] == 1
-                role     = msg['author_role'] or ''
-                role_cls = ''.join(c for c in role if c.isalnum())
-                disp_role = 'TSD' if role == 'General' else role
-                pi_cell  = f'<span class="pi-badge" style="font-size:0.68rem">{msg["pi_number"]}</span>' if msg.get('pi_number') else '<span style="color:#D1D5DB">—</span>'
-                row_bg   = 'background:#FEF2F2' if deleted else ''
-
-                if deleted:
-                    msg_content = f'<span class="ap-msg-deleted">&#128465; Deleted &mdash; {msg["edited_by"] or ""}</span>'
-                else:
-                    msg_content = f'<span class="ap-msg-text">{msg["message"] or ""}</span>'
-
-                msg_rows += f"""
-                <div class="ap-msg-row" style="{row_bg}">
-                  <div class="ap-msg-cell ap-msg-num">{mnum}</div>
-                  <div class="ap-msg-cell ap-msg-author">
-                    <span class="ap-msg-name">{msg['author_name'] or 'Unknown'}</span>
-                    <span class="ap-msg-handle">@{msg['author_username'] or ''}</span>
-                  </div>
-                  <div class="ap-msg-cell ap-msg-role">
-                    <span class="role-tag role-{role_cls}" style="font-size:0.65rem;padding:1px 6px">{disp_role}</span>
-                  </div>
-                  <div class="ap-msg-cell ap-msg-pi">{pi_cell}</div>
-                  <div class="ap-msg-cell ap-msg-text-cell">
-                    {msg_content}
-                    <span class="ap-msg-time">{msg['created_at'] or ''}</span>
-                  </div>
-                </div>"""
-
-            rows_html += f"""
-            <tr id="ap-panel-{sid}" class="ap-disc-panel">
-              <td colspan="9" style="padding:0;border-top:none;">
-                <div class="ap-disc-inner">
-                  <div style="margin-bottom:8px;font-size:0.78rem;font-weight:700;color:#14532D;">
-                    &#128172; {total_msgs} message(s) for <strong>{part_name}</strong>
-                    <a href="/discussion/{sid}" style="margin-left:12px;font-size:0.73rem;color:var(--red-main);text-decoration:none;font-weight:600;">
-                      &#8594; Open Full Discussion
-                    </a>
-                  </div>
-                  <div class="ap-msg-list">
-                    <div class="ap-msg-header">
-                      <div class="ap-msg-header-cell">#</div>
-                      <div class="ap-msg-header-cell">Author</div>
-                      <div class="ap-msg-header-cell">Role</div>
-                      <div class="ap-msg-header-cell">PI</div>
-                      <div class="ap-msg-header-cell">Message</div>
-                    </div>
-                    {msg_rows}
-                  </div>
-                </div>
-              </td>
-            </tr>"""
-
-    html = summary_bar + f"""
-    <table class="ap-summary-table">
-      <thead>
-        <tr>
-          <th>Part Name</th>
-          <th>Part No.</th>
-          <th>Model</th>
-          <th>Dealer ID</th>
-          <th>Status</th>
-          <th>PI No.</th>
-          <th>Messages</th>
-          <th>Last Message</th>
-          <th>View</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows_html}
-      </tbody>
-    </table>"""
-
-    return jsonify({'html': html})
-
-
-# =========================================================
-# DISCUSSION — Full-width Excel-style rows
-# =========================================================
-def _tsd_auto_status(current_status):
-    if current_status in ('Open', 'Inprogress'):
-        return 'Inprogress : TSD'
+def _auto_status_on_post(current_status, portal):
+    """
+    Status rules:
+    - No discussions → 'Open'
+    - QAC posts → 'Open - QAC'
+    - TSD posts → 'Open - TSD'
+    """
+    if portal == 'QAC':
+        return 'Open - QAC'
+    elif portal == 'TSD':
+        return 'Open - TSD'
     return current_status
 
 
 @app.route('/discussion/<int:shipment_id>', methods=['GET', 'POST'])
 def view_discussion(shipment_id):
-    if 'admin' not in session and 'dealer' not in session:
+    if 'user' not in session:
         return redirect('/')
-    name, username, role = get_current_user()
+    name, username, portal = get_current_user()
     conn = get_db()
     cur = dict_cursor(conn)
 
@@ -2572,43 +1968,50 @@ def view_discussion(shipment_id):
         action = request.form.get('action', 'post')
         if action == 'post':
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            auto_pi = generate_pi_number(shipment_id)
             cur.execute("""INSERT INTO "Discussion"
             (shipment_id,pi_number,message,dept,created_at,author_name,author_username,author_role)
             VALUES(%s,%s,%s,%s,%s,%s,%s,%s)""",
-            (shipment_id, request.form.get('pi_number',''), request.form.get('message',''),
-             role, now, name, username, role))
-            is_tsd = ('dealer' in session and session.get('dealer_department', '') == 'General')
-            if is_tsd:
-                cur.execute('SELECT status FROM shipments WHERE "Sl_No"=%s', (shipment_id,))
-                row = cur.fetchone()
-                if row:
-                    new_status = _tsd_auto_status(row['status'] or 'Open')
-                    cur.execute('UPDATE shipments SET status=%s WHERE "Sl_No"=%s', (new_status, shipment_id))
+            (shipment_id, auto_pi, request.form.get('message', ''),
+             portal, now, name, username, portal))
+            # Auto-update status: Open → Open-QAC or Open-TSD based on who posts
+            cur.execute('SELECT status FROM shipments WHERE "Sl_No"=%s', (shipment_id,))
+            row = cur.fetchone()
+            if row:
+                new_status = _auto_status_on_post(row['status'] or 'Open', portal)
+                cur.execute('UPDATE shipments SET status=%s WHERE "Sl_No"=%s',
+                            (new_status, shipment_id))
         elif action == 'edit':
             disc_id = int(request.form.get('disc_id', 0))
             cur.execute('SELECT * FROM "Discussion" WHERE "Sl_No"=%s', (disc_id,))
             disc = cur.fetchone()
-            if disc and (disc['author_username'] == username or 'admin' in session):
-                cur.execute('UPDATE "Discussion" SET message=%s,edited=1,edited_at=%s,edited_by=%s WHERE "Sl_No"=%s',
-                    (request.form.get('message',''), datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            if disc and (disc['author_username'] == username or portal == 'QAC'):
+                cur.execute(
+                    'UPDATE "Discussion" SET message=%s,edited=1,edited_at=%s,edited_by=%s WHERE "Sl_No"=%s',
+                    (request.form.get('message', ''),
+                     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                      f"{name} ({username})", disc_id))
         elif action == 'delete':
             disc_id = int(request.form.get('disc_id', 0))
             cur.execute('SELECT * FROM "Discussion" WHERE "Sl_No"=%s', (disc_id,))
             disc = cur.fetchone()
-            if disc and (disc['author_username'] == username or 'admin' in session):
-                cur.execute('UPDATE "Discussion" SET is_deleted=1,edited_by=%s,edited_at=%s WHERE "Sl_No"=%s',
-                    (f"Deleted by {name} ({username})", datetime.now().strftime("%Y-%m-%d %H:%M:%S"), disc_id))
+            if disc and (disc['author_username'] == username or portal == 'QAC'):
+                cur.execute(
+                    'UPDATE "Discussion" SET is_deleted=1,edited_by=%s,edited_at=%s WHERE "Sl_No"=%s',
+                    (f"Deleted by {name} ({username})",
+                     datetime.now().strftime("%Y-%m-%d %H:%M:%S"), disc_id))
         conn.commit()
         conn.close()
         return redirect(url_for('view_discussion', shipment_id=shipment_id))
 
     cur.execute('SELECT * FROM shipments WHERE "Sl_No"=%s', (shipment_id,))
     shipment = cur.fetchone()
-    cur.execute('SELECT * FROM "Discussion" WHERE shipment_id=%s ORDER BY "Sl_No" ASC', (shipment_id,))
+    cur.execute('SELECT * FROM "Discussion" WHERE shipment_id=%s ORDER BY "Sl_No" ASC',
+                (shipment_id,))
     discussions = cur.fetchall()
     conn.close()
-    back_link = '/admin_dashboard' if 'admin' in session else '/dealer_dashboard'
+
+    auto_pi = generate_pi_number(shipment_id)
 
     current_onedrive = ''
     if shipment:
@@ -2617,72 +2020,52 @@ def view_discussion(shipment_id):
         except Exception:
             current_onedrive = ''
 
-    # ── Collect all unique PI numbers used in this shipment's discussions ──
-    pi_numbers_used = sorted(set(
-        d['pi_number'] for d in discussions
-        if d.get('pi_number') and not d['is_deleted']
-    ))
+    onedrive_link_btn = ""
+    if current_onedrive:
+        onedrive_link_btn = f'<a href="{current_onedrive}" target="_blank" class="btn btn-success btn-sm">&#128279; Open OneDrive</a>'
 
-    # ── Build Cumulative (PI-based) buttons ──
-    cum_buttons_html = ""
-    if pi_numbers_used:
-        btn_list = " ".join([
-            f'<button type="button" class="btn-cumulative" onclick="openCumModal(\'{pi}\')">'
-            f'&#128196; All Discussions — PI: {pi}</button>'
-            for pi in pi_numbers_used
-        ])
-        cum_buttons_html = f"""
-        <div style="margin-bottom:10px;padding:10px 14px;background:#EEF4FF;border:1px solid #BFDBFE;
-                    border-radius:5px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <span style="font-size:0.73rem;font-weight:700;color:#1E3A8A;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">
-            &#128202; PI-based View
-          </span>
-          {btn_list}
-        </div>"""
-
-    # ── All-parts cumulative button ──
-    allparts_btn_html = f"""
-    <div style="margin-bottom:14px;padding:10px 14px;background:#F0FDF4;border:1px solid #86EFAC;
-                border-radius:5px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <span style="font-size:0.73rem;font-weight:700;color:#14532D;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">
-        &#128203; Cumulative
-      </span>
-      <button type="button" class="btn-cumulative-all" onclick="openAllPartsModal()">
-        &#128203; All Parts — Cumulative Discussion View
-      </button>
-      <span style="font-size:0.73rem;color:#4B5563;">
-        See discussions across all parts in one table with message counts
-      </span>
+    onedrive_bar = f"""
+    <div class="onedrive-bar">
+      <label>&#9729; OneDrive</label>
+      <form method="POST" action="/update_onedrive/{shipment_id}"
+            style="display:flex;gap:8px;flex:1;align-items:center;flex-wrap:wrap">
+        <input type="text" name="onedrive_url" value="{current_onedrive}"
+               placeholder="Paste OneDrive / SharePoint URL here..." style="flex:1;min-width:260px">
+        <button type="submit" class="btn btn-primary btn-sm">&#128190; Save</button>
+      </form>
+      {onedrive_link_btn}
     </div>"""
 
-    # ── Build Excel-style full-width rows ──
     disc_html = ""
     for row_num, d in enumerate(discussions, start=1):
-        is_mine = (d['author_username'] == username)
-        can_edit = is_mine or 'admin' in session
-        deleted = d['is_deleted'] == 1
+        is_mine  = (d['author_username'] == username)
+        can_edit = is_mine or portal == 'QAC'
+        deleted  = d['is_deleted'] == 1
         author_role = d['author_role'] or ''
-        role_cls = ''.join(c for c in author_role if c.isalnum())
-        display_role = 'TSD' if author_role == 'General' else author_role
+        role_cls    = ''.join(c for c in author_role if c.isalnum())
 
         row_style = ""
         if deleted:
-            row_style = 'style="background:#fafafa;"'
+            row_style = 'style="background:#FAFAFA;"'
         elif is_mine:
-            row_style = 'style="background:#FFF8F9;"'
+            row_style = 'style="background:linear-gradient(135deg,#FFF8F9,#FFF5F6);"'
 
-        pi_cell = f'<span class="pi-badge">{d["pi_number"]}</span>' if d.get('pi_number') else '<span style="color:var(--text-light);font-size:0.75rem">—</span>'
+        pi_cell = (f'<span class="pi-badge">{d["pi_number"]}</span>'
+                   if d.get('pi_number')
+                   else '<span style="color:var(--text-light);font-size:0.73rem">—</span>')
 
         if deleted:
-            msg_content = '<span class="msg-text deleted-text">&#128465; This message was deleted</span>'
-            deleted_by_html = f'<span class="deleted-by-tag">{d["edited_by"] or "Deleted"}</span>' if d.get('edited_by') else ''
-            meta_html = f'<div class="msg-meta"><span class="msg-time">{d["created_at"] or ""}</span>{deleted_by_html}</div>'
+            msg_content  = '<span class="msg-text deleted-text">&#128465; This message was deleted</span>'
+            deleted_by_h = (f'<span class="deleted-by-tag">{d["edited_by"] or "Deleted"}</span>'
+                            if d.get('edited_by') else '')
+            meta_html    = f'<div class="msg-meta"><span class="msg-time">{d["created_at"] or ""}</span>{deleted_by_h}</div>'
             actions_html = ""
             edit_form_html = ""
         else:
-            edited_tag = f'<span class="edited-tag">&#9998; edited {d["edited_at"] or ""}</span>' if d['edited'] else ""
-            msg_content = f'<span class="msg-text">{d["message"] or ""}</span>'
-            meta_html = f'<div class="msg-meta"><span class="msg-time">{d["created_at"] or ""}</span>{edited_tag}</div>'
+            edited_tag   = (f'<span class="edited-tag">&#9998; edited {d["edited_at"] or ""}</span>'
+                            if d['edited'] else "")
+            msg_content  = f'<span class="msg-text">{d["message"] or ""}</span>'
+            meta_html    = f'<div class="msg-meta"><span class="msg-time">{d["created_at"] or ""}</span>{edited_tag}</div>'
 
             if can_edit:
                 edit_form_html = f"""
@@ -2690,7 +2073,7 @@ def view_discussion(shipment_id):
                   <form method="POST">
                     <input type="hidden" name="action" value="edit">
                     <input type="hidden" name="disc_id" value="{d['Sl_No']}">
-                    <textarea name="message" rows="2" style="width:100%;font-size:0.83rem">{d['message']}</textarea><br>
+                    <textarea name="message" rows="2" style="width:100%;font-size:0.82rem">{d['message']}</textarea><br>
                     <div style="display:flex;gap:6px;margin-top:4px">
                       <button type="submit" class="btn btn-sm btn-primary">Save</button>
                       <button type="button" class="btn btn-sm btn-secondary"
@@ -2709,7 +2092,7 @@ def view_discussion(shipment_id):
                 </form>"""
             else:
                 edit_form_html = ""
-                actions_html = ""
+                actions_html   = ""
 
         disc_html += f"""
         <div class="chat-row" {row_style}>
@@ -2719,7 +2102,7 @@ def view_discussion(shipment_id):
             <span class="author-handle">@{d['author_username'] or ''}</span>
           </div>
           <div class="cell cell-role">
-            <span class="role-tag role-{role_cls}">{display_role}</span>
+            <span class="role-tag role-{role_cls}">{author_role}</span>
           </div>
           <div class="cell cell-pi">{pi_cell}</div>
           <div class="cell cell-message">
@@ -2731,67 +2114,48 @@ def view_discussion(shipment_id):
         </div>"""
 
     if not disc_html:
-        disc_html = '<div style="text-align:center;padding:40px;color:var(--text-muted)">No messages yet. Be the first to post!</div>'
-
-    part_info = ""
-    if shipment:
-        current_status = shipment['status'] or 'Open'
-        dealer_id_display = shipment.get('dealer_id') or ''
-        lead_html = lead_time_badge(shipment.get('Date_sent') or '')
-        part_info = f"""<div class="alert alert-info" style="margin-bottom:14px">
-          <strong>Part:</strong> {shipment['Part_Name']} &nbsp;|&nbsp;
-          <strong>No.:</strong> {shipment['Part_Number']} &nbsp;|&nbsp;
-          <strong>Model:</strong> {shipment['Model']} &nbsp;|&nbsp;
-          <strong>Dealer ID:</strong> <span style="color:var(--red-main);font-weight:700">{dealer_id_display}</span> &nbsp;|&nbsp;
-          <strong>Status:</strong> {status_badge(current_status)} &nbsp;|&nbsp;
-          <strong>Lead Time:</strong> {lead_html}
-        </div>"""
-
-    onedrive_link_btn = ""
-    if current_onedrive:
-        onedrive_link_btn = f'<a href="{current_onedrive}" target="_blank" class="btn btn-success btn-sm">&#128279; Open OneDrive</a>'
-
-    onedrive_bar = f"""
-    <div class="onedrive-bar">
-      <label>&#9729; OneDrive URL</label>
-      <form method="POST" action="/update_onedrive/{shipment_id}" style="display:flex;gap:8px;flex:1;align-items:center;flex-wrap:wrap">
-        <input type="text" name="onedrive_url" value="{current_onedrive}"
-               placeholder="Paste OneDrive / SharePoint URL here..." style="flex:1;min-width:260px">
-        <button type="submit" class="btn btn-primary btn-sm">&#128190; Save URL</button>
-      </form>
-      {onedrive_link_btn}
-    </div>"""
+        disc_html = '<div style="text-align:center;padding:50px;color:var(--text-light);font-size:0.85rem">&#128172; No messages yet. Be the first to post!</div>'
 
     msg_count = len(discussions)
-    html = get_base_style() + render_admin_header() + cum_modal_html() + allparts_modal_html() + f"""
+
+    html = get_base_style() + render_header() + f"""
     <div class="page-wrap">
       <div style="margin-bottom:12px">
-        <a href="{back_link}" class="btn btn-secondary">&#8592; Back to Dashboard</a>
+        <a href="/dashboard" class="btn btn-secondary">&#8592; Dashboard</a>
       </div>
-      {part_info}
-      {allparts_btn_html}
-      {cum_buttons_html}
+
       {onedrive_bar}
+
       <div class="card">
         <div class="card-title-bar"><h2>&#128172; Post a Message</h2></div>
-        <form method="POST" style="margin-top:12px">
-          <input type="hidden" name="action" value="post">
-          <div class="form-row">
-            <div class="form-group"><label>PI Number</label>
-              <input type="text" name="pi_number" placeholder="PI Number" style="width:160px"></div>
+        <div style="margin-top:14px;margin-bottom:12px;">
+          <div style="font-size:0.68rem;font-weight:700;color:var(--text-muted);
+                      text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">
+            PI Number (Auto-generated)
           </div>
+          <div class="auto-pi-display">
+            <span class="pi-label">PI</span>
+            <strong>{auto_pi}</strong>
+          </div>
+        </div>
+        <form method="POST">
+          <input type="hidden" name="action" value="post">
           <div class="form-group" style="margin-top:10px"><label>Message</label>
-            <textarea name="message" rows="3" style="width:100%" required placeholder="Type your message..."></textarea></div>
-          <button type="submit" class="btn btn-primary" style="margin-top:10px">&#128228; Post Message</button>
+            <textarea name="message" rows="3" style="width:100%" required
+                      placeholder="Type your message..."></textarea></div>
+          <button type="submit" class="btn btn-primary" style="margin-top:10px">
+            &#128228; Post Message
+          </button>
         </form>
       </div>
+
       <div class="card" style="padding:0;overflow:hidden">
-        <div class="card-title-bar" style="margin:0 0 0 0;border-radius:6px 6px 0 0">
+        <div class="card-title-bar" style="margin:0;border-radius:8px 8px 0 0">
           <h3>Messages ({msg_count})</h3>
         </div>
         <div class="chat-container" id="chatbox">
           <div class="chat-header-row">
-            <div class="chat-header-cell" style="justify-content:center">#</div>
+            <div class="chat-header-cell">#</div>
             <div class="chat-header-cell">Author</div>
             <div class="chat-header-cell">Role</div>
             <div class="chat-header-cell">PI Number</div>
@@ -2802,183 +2166,15 @@ def view_discussion(shipment_id):
         </div>
       </div>
     </div>
+
     <div class="view-switcher">
-      <a href="/admin_dashboard" class="vs-normal"><span>&#9776;</span> Normal View</a>
+      <a href="/dashboard" class="vs-normal"><span>&#9776;</span> Normal View</a>
       <a href="/summary_dashboard" class="vs-summary"><span>&#128202;</span> Summary View</a>
     </div>
     <script>
       var chatbox = document.getElementById('chatbox');
       if(chatbox) chatbox.scrollTop = chatbox.scrollHeight;
     </script>"""
-    return render_template_string(html)
-
-
-# =========================================================
-# MANAGE MEMBERS
-# =========================================================
-@app.route('/manage_admins', methods=['GET', 'POST'])
-def manage_admins():
-    if 'admin' not in session:
-        return redirect('/admin_login')
-    conn = get_db()
-    cur = dict_cursor(conn)
-    msg = ""
-    if request.method == 'POST':
-        action = request.form.get('action')
-        if action == 'add':
-            uname = request.form.get('username','').strip()
-            cur.execute("SELECT COUNT(*) as cnt FROM admins WHERE username=%s", (uname,))
-            if cur.fetchone()['cnt'] > 0:
-                msg = "add_err"
-            else:
-                try:
-                    cur.execute("INSERT INTO admins(name,username,password,role) VALUES(%s,%s,%s,%s)",
-                        (request.form['name'], uname, request.form['password'], request.form['role']))
-                    conn.commit()
-                    msg = "add_ok"
-                except Exception:
-                    conn.rollback()
-                    msg = "add_err"
-        elif action == 'delete':
-            aid = int(request.form.get('admin_id', 0))
-            if aid != session['admin']:
-                cur.execute('DELETE FROM admins WHERE "Sl_No"=%s', (aid,))
-                conn.commit()
-                msg = "del_ok"
-            else:
-                msg = "del_self"
-        elif action == 'change_password':
-            cur.execute('UPDATE admins SET password=%s WHERE "Sl_No"=%s',
-                (request.form['new_password'], int(request.form.get('admin_id', 0))))
-            conn.commit()
-            msg = "pw_ok"
-    cur.execute('SELECT * FROM admins ORDER BY "Sl_No"')
-    admins = cur.fetchall()
-    conn.close()
-    alert_map = {
-        'add_ok':   ('success', 'Member added successfully.'),
-        'add_err':  ('danger',  'Username already exists.'),
-        'del_ok':   ('success', 'Member deleted.'),
-        'del_self': ('danger',  'Cannot delete your own account.'),
-        'pw_ok':    ('success', 'Password updated.'),
-    }
-    alert_html = ""
-    if msg in alert_map:
-        cls, text = alert_map[msg]
-        alert_html = f'<div class="alert alert-{cls}">{text}</div>'
-    rows = ""
-    for a in admins:
-        role_cls = ''.join(c for c in a['role'] if c.isalnum())
-        you = " <small style='color:var(--red-main)'>(you)</small>" if a['Sl_No'] == session['admin'] else ""
-        rows += f"""<tr>
-          <td style="color:var(--text-muted)">{a['Sl_No']}</td>
-          <td>{a['name']}{you}</td>
-          <td><code>{a['username']}</code></td>
-          <td><span class="role-tag role-{role_cls}">{a['role']}</span></td>
-          <td>
-            <form method="POST" style="display:inline">
-              <input type="hidden" name="action" value="change_password">
-              <input type="hidden" name="admin_id" value="{a['Sl_No']}">
-              <input type="password" name="new_password" placeholder="New password" style="width:120px">
-              <button type="submit" class="btn btn-sm btn-warn">Update PW</button>
-            </form>
-            {"" if a['Sl_No'] == session['admin'] else f"""
-            <form method="POST" style="display:inline">
-              <input type="hidden" name="action" value="delete">
-              <input type="hidden" name="admin_id" value="{a['Sl_No']}">
-              <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete member?')">Delete</button>
-            </form>"""}
-          </td></tr>"""
-    role_opts = "".join([f'<option value="{r}">{r}</option>' for r in ['QACAdmin','QICAdmin','ProductionAdmin']])
-    html = get_base_style() + render_admin_header() + f"""
-    <div class="page-wrap">
-      {alert_html}
-      <div class="card">
-        <div class="card-title-bar"><h2>&#10133; Add New Member</h2></div>
-        <form method="POST" class="form-row" style="margin-top:14px">
-          <input type="hidden" name="action" value="add">
-          <div class="form-group"><label>Full Name</label>
-            <input type="text" name="name" required placeholder="Full name"></div>
-          <div class="form-group"><label>Username</label>
-            <input type="text" name="username" required placeholder="Username"></div>
-          <div class="form-group"><label>Password</label>
-            <input type="password" name="password" required placeholder="Password"></div>
-          <div class="form-group"><label>Role</label>
-            <select name="role">{role_opts}</select></div>
-          <div class="form-group"><label>&nbsp;</label>
-            <button type="submit" class="btn btn-primary">Add Member</button></div>
-        </form>
-      </div>
-      <div class="card">
-        <div class="card-title-bar"><h2>&#128101; All Members</h2></div>
-        <div class="table-wrap"><table>
-          <thead><tr><th>ID</th><th>Name</th><th>Username</th><th>Role</th><th>Actions</th></tr></thead>
-          <tbody>{rows}</tbody>
-        </table></div>
-      </div>
-    </div>"""
-    return render_template_string(html)
-
-
-# =========================================================
-# MANAGE USERS
-# =========================================================
-@app.route('/manage_users', methods=['GET', 'POST'])
-def manage_users():
-    if 'admin' not in session:
-        return redirect('/admin_login')
-    conn = get_db()
-    cur = dict_cursor(conn)
-    msg = ""
-    if request.method == 'POST':
-        action = request.form.get('action')
-        if action == 'delete':
-            cur.execute('DELETE FROM dealers WHERE "Sl_No"=%s', (int(request.form.get('user_id', 0)),))
-            conn.commit()
-            msg = "del_ok"
-        elif action == 'change_password':
-            cur.execute('UPDATE dealers SET password=%s WHERE "Sl_No"=%s',
-                (request.form['new_password'], int(request.form.get('user_id', 0))))
-            conn.commit()
-            msg = "pw_ok"
-    cur.execute('SELECT * FROM dealers ORDER BY "Sl_No"')
-    users = cur.fetchall()
-    conn.close()
-    alert_html = ""
-    if msg == 'del_ok':
-        alert_html = '<div class="alert alert-success">User deleted.</div>'
-    elif msg == 'pw_ok':
-        alert_html = '<div class="alert alert-success">Password updated.</div>'
-    rows = ""
-    for u in users:
-        dept_display = 'TSD' if u['department'] == 'General' else u['department']
-        rows += f"""<tr>
-          <td style="color:var(--text-muted)">{u['Sl_No']}</td>
-          <td>{u['name']}</td><td><code>{u['username']}</code></td><td>{dept_display}</td>
-          <td>
-            <form method="POST" style="display:inline">
-              <input type="hidden" name="action" value="change_password">
-              <input type="hidden" name="user_id" value="{u['Sl_No']}">
-              <input type="password" name="new_password" placeholder="New password" style="width:120px">
-              <button type="submit" class="btn btn-sm btn-warn">Update PW</button>
-            </form>
-            <form method="POST" style="display:inline">
-              <input type="hidden" name="action" value="delete">
-              <input type="hidden" name="user_id" value="{u['Sl_No']}">
-              <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete user?')">Delete</button>
-            </form>
-          </td></tr>"""
-    html = get_base_style() + render_admin_header() + f"""
-    <div class="page-wrap">
-      {alert_html}
-      <div class="card">
-        <div class="card-title-bar"><h2>&#128100; All Users ({len(users)})</h2></div>
-        <div class="table-wrap"><table>
-          <thead><tr><th>ID</th><th>Name</th><th>Username</th><th>Department</th><th>Actions</th></tr></thead>
-          <tbody>{rows}</tbody>
-        </table></div>
-      </div>
-    </div>"""
     return render_template_string(html)
 
 
@@ -2997,15 +2193,14 @@ if __name__ == "__main__":
         local_ip = "127.0.0.1"
     port = 5000
     print("=" * 60)
-    print("  QAC Discussion Portal — Toyota Kirloskar Motors")
+    print("  NTF Discussion Portal — Toyota Kirloskar Motors")
     print("=" * 60)
     print(f"  Local:         http://127.0.0.1:{port}")
     print(f"  Network (LAN): http://{local_ip}:{port}")
     print()
-    print("  Default QAC Member Credentials:")
-    print("  Role             | Username  | Password")
-    print("  QACAdmin         | qacadmin  | qac123")
-    print("  QICAdmin         | qicadmin  | qic123")
-    print("  ProductionAdmin  | prodadmin | prod123")
+    print("  Default Credentials:")
+    print("  Portal  | Username | Password")
+    print("  QAC     | qac001   | qac123")
+    print("  TSD     | tsd001   | tsd123")
     print("=" * 60)
     app.run(host='0.0.0.0', port=port, debug=False)
