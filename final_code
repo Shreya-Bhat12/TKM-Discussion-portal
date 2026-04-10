@@ -1,3 +1,14 @@
+
+def get_db():
+    conn = psycopg2.connect(
+        host="localhost",
+        database="postgres",
+        user="postgres",
+        password="Shreya@2005",
+        port="5432"
+    )
+
+
 from flask import Flask, render_template, render_template_string, session, redirect, url_for, request, jsonify
 import psycopg2
 import psycopg2.extras
@@ -959,7 +970,7 @@ def lead_time_counts_html(cnt_ok, cnt_crossed):
 
 
 # =========================================================
-# AUTO-GENERATE PI NUMBER
+# AUTO-GENERATE PI NUMBER (fallback only)
 # =========================================================
 def generate_pi_number(shipment_id):
     now = datetime.now()
@@ -972,7 +983,8 @@ def generate_pi_number(shipment_id):
 def get_db():
     conn = psycopg2.connect(
         host="localhost", database="postgres",
-        user="TKM02052", password="TUKA@2028", port="5432"
+        user="postgres",
+        password="Shreya@2005", port="5432"
     )
     conn.autocommit = False
     return conn
@@ -1108,7 +1120,7 @@ def home():
         <a href="/login/qac" class="portal-btn portal-qac">
           <span class="portal-icon">&#128269;</span>
           <span class="portal-label">QAC</span>
-          <span class="portal-sub">Quality Assurance Cell</span>
+          <span class="portal-sub">Quality Analysis Center</span>
         </a>
         <a href="/login/tsd" class="portal-btn portal-tsd">
           <span class="portal-icon">&#128736;</span>
@@ -1147,8 +1159,9 @@ def login(portal_type):
         error_msg = "Invalid username or password."
 
     alert_html = f'<div class="alert alert-danger">{error_msg}</div>' if error_msg else ''
+    # ── FIX: QAC full form updated ──
     portal_label = 'QAC Portal' if portal_type == 'QAC' else 'TSD Portal'
-    portal_sub   = 'Quality Assurance Cell' if portal_type == 'QAC' else 'Technical Service Division'
+    portal_sub   = 'Quality Analysis Center' if portal_type == 'QAC' else 'Technical Service Division'
     other_type   = 'tsd' if portal_type == 'QAC' else 'qac'
     other_label  = 'TSD Portal' if portal_type == 'QAC' else 'QAC Portal'
 
@@ -1223,8 +1236,9 @@ def register(portal_type):
                     error_msg = "Registration failed. Please try again."
 
     alert_html = f'<div class="alert alert-danger">{error_msg}</div>' if error_msg else ''
+    # ── FIX: QAC full form updated ──
     portal_label = 'QAC Portal' if portal_type == 'QAC' else 'TSD Portal'
-    portal_sub   = 'Quality Assurance Cell' if portal_type == 'QAC' else 'Technical Service Division'
+    portal_sub   = 'Quality Analysis Center' if portal_type == 'QAC' else 'Technical Service Division'
 
     html = get_base_style() + render_login_header() + f"""
     <div class="login-content">
@@ -1968,11 +1982,15 @@ def view_discussion(shipment_id):
         action = request.form.get('action', 'post')
         if action == 'post':
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            auto_pi = generate_pi_number(shipment_id)
+            # ── FIX: Use the shipment's own PIC field as the PI number ──
+            # Only fall back to auto-generated if PIC is blank
+            cur.execute('SELECT "PIC" FROM shipments WHERE "Sl_No"=%s', (shipment_id,))
+            _pic_row = cur.fetchone()
+            shipment_pi = (_pic_row['PIC'] or generate_pi_number(shipment_id)) if _pic_row else generate_pi_number(shipment_id)
             cur.execute("""INSERT INTO "Discussion"
             (shipment_id,pi_number,message,dept,created_at,author_name,author_username,author_role)
             VALUES(%s,%s,%s,%s,%s,%s,%s,%s)""",
-            (shipment_id, auto_pi, request.form.get('message', ''),
+            (shipment_id, shipment_pi, request.form.get('message', ''),
              portal, now, name, username, portal))
             # Auto-update status: Open → Open-QAC or Open-TSD based on who posts
             cur.execute('SELECT status FROM shipments WHERE "Sl_No"=%s', (shipment_id,))
@@ -2011,7 +2029,8 @@ def view_discussion(shipment_id):
     discussions = cur.fetchall()
     conn.close()
 
-    auto_pi = generate_pi_number(shipment_id)
+    # ── FIX: Display the shipment's own PIC value; fall back only if blank ──
+    auto_pi = (shipment['PIC'] or generate_pi_number(shipment_id)) if shipment else generate_pi_number(shipment_id)
 
     current_onedrive = ''
     if shipment:
@@ -2131,7 +2150,7 @@ def view_discussion(shipment_id):
         <div style="margin-top:14px;margin-bottom:12px;">
           <div style="font-size:0.68rem;font-weight:700;color:var(--text-muted);
                       text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">
-            PI Number (Auto-generated)
+            PI Number
           </div>
           <div class="auto-pi-display">
             <span class="pi-label">PI</span>
