@@ -1,14 +1,4 @@
 
-def get_db():
-    conn = psycopg2.connect(
-        host="localhost",
-        database="postgres",
-        user="postgres",
-        password="Shreya@2005",
-        port="5432"
-    )
-
-
 from flask import Flask, render_template, render_template_string, session, redirect, url_for, request, jsonify
 import psycopg2
 import psycopg2.extras
@@ -25,18 +15,9 @@ PER_PAGE = 10
 
 POWERBI_URL = "https://app.powerbi.com/links/4m-SFm0IN4?ctid=57b9390d-91d5-4fbd-8800-8fe81cc0529d&pbi_source=linkShare"
 
-# ── Inline SVG Toyota emblem (red & white, no external file needed) ──
-# ── Toyota emblem using official hosted SVG ──
-
-
 def toyota_logo_html():
     return "https://www.carlogos.org/car-logos/toyota-logo.png"
 
-
-
-# =========================================================
-# BASE STYLE — White & Red, Premium Industrial UI
-# =========================================================
 def get_base_style():
     return """
 <style>
@@ -98,7 +79,6 @@ body {
         radial-gradient(ellipse at 80% 100%, rgba(200,16,46,0.03) 0%, transparent 60%);
 }
 
-/* ── HEADER — white background ── */
 .site-header {
     background: #FFFFFF;
     border-bottom: 2px solid var(--red-600);
@@ -164,7 +144,6 @@ body {
 .header-nav a.nav-danger { color: var(--red-600); }
 .header-nav a.nav-danger:hover { background: var(--red-100); color: var(--red-800); }
 
-/* ── POWER BI BUTTON ── */
 .btn-powerbi {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 5px 12px;
@@ -184,7 +163,6 @@ body {
 }
 .btn-powerbi svg { width: 14px; height: 14px; flex-shrink: 0; }
 
-/* ── ROLE TAGS ── */
 .role-tag {
     display: inline-block;
     padding: 2px 10px; border-radius: var(--radius-sm);
@@ -206,10 +184,8 @@ body {
 }
 .role-General { background: linear-gradient(135deg, #1A3A6A, #1A4A8A); color: white; }
 
-/* ── PAGE WRAP ── */
 .page-wrap { max-width: 1540px; margin: auto; padding: 18px 20px 70px; }
 
-/* ── CARD ── */
 .card {
     background: var(--grad-card);
     border: 1px solid var(--border);
@@ -244,13 +220,11 @@ body {
 }
 .card-title-bar h2, .card-title-bar h3 { color: var(--red-700); margin: 0; }
 
-/* ── TYPOGRAPHY ── */
 h1, h2, h3 { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; }
 h1 { font-size: 1.6rem; color: var(--gray-800); }
 h2 { font-size: 1.25rem; color: var(--red-700); }
 h3 { font-size: 1.05rem; color: var(--gray-600); }
 
-/* ── FILTER CARD ── */
 .filter-card {
     background: var(--grad-card);
     border: 1px solid var(--border);
@@ -260,7 +234,6 @@ h3 { font-size: 1.05rem; color: var(--gray-600); }
     box-shadow: var(--shadow-sm);
 }
 
-/* ── FORMS ── */
 .form-row { display: flex; flex-wrap: wrap; gap: 7px; align-items: flex-end; }
 .form-group { display: flex; flex-direction: column; gap: 3px; }
 .form-group label {
@@ -285,7 +258,6 @@ input:focus,textarea:focus,select:focus {
     box-shadow: 0 0 0 3px rgba(200,16,46,0.08), var(--shadow-inset);
 }
 
-/* ── BUTTONS ── */
 .btn {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 7px 15px;
@@ -383,7 +355,6 @@ input:focus,textarea:focus,select:focus {
 .btn-sm { padding: 3px 9px; font-size: 0.73rem; }
 .btn-xs { padding: 2px 7px; font-size: 0.68rem; }
 
-/* ── TABLE — white header with red accent ── */
 .table-wrap {
     overflow-x: auto;
     border-radius: var(--radius-sm);
@@ -408,7 +379,6 @@ tbody tr:hover td {
     background: linear-gradient(135deg, #FFF8F9, #FFF5F6);
 }
 
-/* ── STATUS BADGES ── */
 .status-badge {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 3px 10px;
@@ -422,28 +392,24 @@ tbody tr:hover td {
     border-radius: 50%;
     display: inline-block;
 }
-/* Open (default) */
 .status-Open {
     background: linear-gradient(135deg, #FFF8E1, #FFF3CC);
     color: #7A4A00;
     border: 1px solid #FFD54F;
 }
 .status-Open::before { background: #F59E0B; box-shadow: 0 0 4px #F59E0B; }
-/* Open - QAC */
 .status-OpenQAC {
     background: linear-gradient(135deg, #FEF0F2, #FFF8F9);
     color: var(--red-700);
     border: 1px solid var(--red-400);
 }
 .status-OpenQAC::before { background: var(--red-500); box-shadow: 0 0 4px var(--red-500); }
-/* Open - TSD */
 .status-OpenTSD {
     background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
     color: #1E3A8A;
     border: 1px solid #93C5FD;
 }
 .status-OpenTSD::before { background: #3B82F6; box-shadow: 0 0 4px #3B82F6; }
-/* Closed */
 .status-Closed {
     background: linear-gradient(135deg, #F3F4F6, #E5E7EB);
     color: #374151;
@@ -451,7 +417,6 @@ tbody tr:hover td {
 }
 .status-Closed::before { background: #6B7280; }
 
-/* ── LEAD TIME BADGES ── */
 .lead-ok {
     display: inline-flex; align-items: center; gap: 4px;
     background: linear-gradient(135deg, #F0FDF4, #DCFCE7);
@@ -472,7 +437,6 @@ tbody tr:hover td {
     50%      { box-shadow: 0 0 0 4px rgba(200,16,46,0.05); }
 }
 
-/* ── STATUS MINI COUNTS ── */
 .status-counts { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
 .sc-pill {
     display: inline-flex; align-items: center; gap: 3px;
@@ -486,7 +450,6 @@ tbody tr:hover td {
 .sc-lead-ok      { background: #F0FDF4; color: #14532D; border: 1px solid #86EFAC; }
 .sc-lead-crossed { background: #FFF1F2; color: #9F1239; border: 1px solid #FDA4AF; }
 
-/* ── PAGINATION ── */
 .pagination { display: flex; gap: 4px; margin-top: 14px; flex-wrap: wrap; }
 .pagination a {
     padding: 5px 11px; border: 1px solid var(--gray-200);
@@ -505,7 +468,6 @@ tbody tr:hover td {
     box-shadow: 0 2px 8px rgba(200,16,46,0.3);
 }
 
-/* ── ALERTS ── */
 .alert {
     padding: 10px 14px; border-radius: var(--radius-sm);
     margin-bottom: 14px; font-size: 0.85rem; border-left: 3px solid;
@@ -514,7 +476,6 @@ tbody tr:hover td {
 .alert-success { background: #F0FDF4; border-color: #22C55E; color: #14532D; }
 .alert-danger  { background: #FEF0F2; border-color: var(--red-600); color: var(--red-800); }
 
-/* ── LOGIN PAGE — white card, red accents ── */
 .login-wrap { min-height: 100vh; display: flex; flex-direction: column; background: var(--off-white); }
 .login-header-bar {
     width: 100%; background: #FFFFFF;
@@ -636,7 +597,6 @@ tbody tr:hover td {
 .login-links a { color: var(--red-600); text-decoration: none; font-weight: 500; }
 .login-links a:hover { color: var(--red-800); text-decoration: underline; }
 
-/* ── CHAT / DISCUSSION ── */
 .chat-container {
     display: flex; flex-direction: column; gap: 0;
     max-height: 700px; overflow-y: auto;
@@ -701,7 +661,6 @@ tbody tr:hover td {
     padding: 8px; margin-top: 6px;
 }
 
-/* ── CHAT HEADER — white with red text ── */
 .chat-header-row {
     display: grid;
     grid-template-columns: 36px 130px 90px 100px 1fr auto;
@@ -717,7 +676,6 @@ tbody tr:hover td {
 }
 .chat-header-cell:last-child { border-right: none; min-width: 90px; }
 
-/* ── ONEDRIVE BAR ── */
 .onedrive-bar {
     background: linear-gradient(135deg, #FFFBF0, #FFF8E1);
     border: 1px solid #FFD54F;
@@ -731,7 +689,6 @@ tbody tr:hover td {
 }
 .onedrive-bar input[type=text] { flex: 1; min-width: 260px; }
 
-/* ── VIEW SWITCHER — white with red accent ── */
 .view-switcher {
     position: fixed; bottom: 0; left: 0; right: 0;
     display: flex; z-index: 200;
@@ -760,7 +717,6 @@ tbody tr:hover td {
     background: #F0FDF4; color: #16A34A;
 }
 
-/* ── SUMMARY EXPAND ROW ── */
 .summary-expand-row { display: none; }
 .summary-expand-row.open { display: table-row; }
 .expand-panel {
@@ -775,23 +731,6 @@ tbody tr:hover td {
 }
 .expand-panel th { color: var(--red-700); }
 
-/* ── AUTO PI BADGE ── */
-.auto-pi-display {
-    display: inline-flex; align-items: center; gap: 10px;
-    background: linear-gradient(135deg, #FFF8E1, #FFF3CC);
-    border: 1px solid #FFD54F;
-    border-radius: var(--radius-md); padding: 10px 16px;
-    font-size: 0.9rem; font-weight: 700; color: #7A4A00;
-    box-shadow: 0 2px 8px rgba(255,213,79,0.2);
-}
-.auto-pi-display .pi-label {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 0.85rem; letter-spacing: 2px;
-    color: #9A6700;
-}
-.auto-pi-display strong { font-family: 'JetBrains Mono', monospace; }
-
-/* ── PI EXPAND ── */
 .pi-expand-row { display: none; }
 .pi-expand-row.open { display: table-row; }
 .pi-discussion-panel {
@@ -823,7 +762,6 @@ tbody tr:hover td {
     font-style: italic;
 }
 
-/* ── MISC ── */
 code {
     font-family: 'JetBrains Mono', monospace;
     color: var(--red-700);
@@ -885,10 +823,6 @@ function toggleEditForm(id) {
 </script>
 """
 
-
-# =========================================================
-# HELPERS
-# =========================================================
 PBI_ICON_SVG = """<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect x="2" y="14" width="4" height="8" rx="1" fill="currentColor"/>
   <rect x="8" y="9" width="4" height="13" rx="1" fill="currentColor"/>
@@ -909,10 +843,6 @@ def status_badge(status):
     label = status or 'Open'
     return f'<span class="status-badge {css}">{label}</span>'
 
-
-# =========================================================
-# LEAD TIME
-# =========================================================
 def compute_lead_time_detail(date_sent_str):
     if not date_sent_str:
         return None, False, 0
@@ -968,18 +898,10 @@ def lead_time_counts_html(cnt_ok, cnt_crossed):
         return '<span style="color:var(--text-light);font-size:0.73rem">—</span>'
     return '<div class="status-counts">' + ''.join(parts) + '</div>'
 
-
-# =========================================================
-# AUTO-GENERATE PI NUMBER (fallback only)
-# =========================================================
 def generate_pi_number(shipment_id):
     now = datetime.now()
     return f"PI-{shipment_id:05d}-{now.strftime('%Y%m')}"
 
-
-# =========================================================
-# DATABASE
-# =========================================================
 def get_db():
     conn = psycopg2.connect(
         host="localhost", database="postgres",
@@ -991,7 +913,6 @@ def get_db():
 
 def dict_cursor(conn):
     return conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
 
 def init_db():
     conn = get_db()
@@ -1047,7 +968,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-
 def get_current_user():
     if 'user' in session:
         return (session.get('user_name', 'User'),
@@ -1055,10 +975,6 @@ def get_current_user():
                 session.get('user_portal', 'TSD'))
     return 'Unknown', 'unknown', 'Unknown'
 
-
-# =========================================================
-# HEADER — white background
-# =========================================================
 def render_header():
     name, username, portal = get_current_user()
     role_cls = portal
@@ -1071,14 +987,11 @@ def render_header():
     """
     return f"""
     <div class="site-header">
-      
-    <div class="login-logo-area">
-        <img src="{toyota_logo_html()}" 
+      <div class="login-logo-area">
+        <img src="{toyota_logo_html()}"
         style="height:48px; width:auto; filter: brightness(0) saturate(100%) invert(19%) sepia(96%) saturate(7486%) hue-rotate(348deg) brightness(94%) contrast(105%);">
-
-    </div>
-        <div class="header-center-title">NTF Discussion Portal</div>
       </div>
+      <div class="header-center-title">NTF Discussion Portal</div>
       <div class="header-right-wrap">
         <span class="role-tag role-{role_cls}">{portal}</span>
         <span class="user-pill">&#128100; {name} &bull; {username}</span>
@@ -1087,25 +1000,18 @@ def render_header():
     </div>
     """
 
-
 def render_login_header():
     return f"""
     <div class="login-header-bar">
-      
-    <div class="login-logo-area">
-        <img src="{toyota_logo_html()}" 
+      <div class="login-logo-area">
+        <img src="{toyota_logo_html()}"
         style="height:48px; width:auto; filter: brightness(0) saturate(100%) invert(19%) sepia(96%) saturate(7486%) hue-rotate(348deg) brightness(94%) contrast(105%);">
-
-    </div>
+      </div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--red-700);letter-spacing:3px;">NTF Discussion Portal</div>
       <div style="font-size:0.65rem;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;"></div>
     </div>
     """
 
-
-# =========================================================
-# AUTH ROUTES
-# =========================================================
 @app.route('/')
 def home():
     html = get_base_style() + render_login_header() + f"""
@@ -1133,7 +1039,6 @@ def home():
     """
     return render_template_string(html)
 
-
 @app.route('/login/<portal_type>', methods=['GET', 'POST'])
 def login(portal_type):
     portal_type = portal_type.upper()
@@ -1159,7 +1064,6 @@ def login(portal_type):
         error_msg = "Invalid username or password."
 
     alert_html = f'<div class="alert alert-danger">{error_msg}</div>' if error_msg else ''
-    # ── FIX: QAC full form updated ──
     portal_label = 'QAC Portal' if portal_type == 'QAC' else 'TSD Portal'
     portal_sub   = 'Quality Analysis Center' if portal_type == 'QAC' else 'Technical Service Division'
     other_type   = 'tsd' if portal_type == 'QAC' else 'qac'
@@ -1168,12 +1072,10 @@ def login(portal_type):
     html = get_base_style() + render_login_header() + f"""
     <div class="login-content">
     <div class="login-card">
-      
-    <div class="login-logo-area">
-        <img src="{toyota_logo_html()}" 
+      <div class="login-logo-area">
+        <img src="{toyota_logo_html()}"
         style="height:48px; width:auto; filter: brightness(0) saturate(100%) invert(19%) sepia(96%) saturate(7486%) hue-rotate(348deg) brightness(94%) contrast(105%);">
-
-    </div>
+      </div>
       <div class="login-title">{portal_label}</div>
       <div class="login-subtitle">{portal_sub}</div>
       <div class="divider"></div>
@@ -1200,7 +1102,6 @@ def login(portal_type):
     </div>
     """
     return render_template_string(html)
-
 
 @app.route('/register/<portal_type>', methods=['GET', 'POST'])
 def register(portal_type):
@@ -1236,7 +1137,6 @@ def register(portal_type):
                     error_msg = "Registration failed. Please try again."
 
     alert_html = f'<div class="alert alert-danger">{error_msg}</div>' if error_msg else ''
-    # ── FIX: QAC full form updated ──
     portal_label = 'QAC Portal' if portal_type == 'QAC' else 'TSD Portal'
     portal_sub   = 'Quality Analysis Center' if portal_type == 'QAC' else 'Technical Service Division'
 
@@ -1246,7 +1146,6 @@ def register(portal_type):
       <div class="login-logo-area">
         <img src="{toyota_logo_html()}" style="height:48px; width:auto;">
       </div>
-
       <div class="login-title">Register — {portal_label}</div>
       <div class="login-subtitle">{portal_sub}</div>
       <div class="divider"></div>
@@ -1273,16 +1172,11 @@ def register(portal_type):
     """
     return render_template_string(html)
 
-
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect('/')
 
-
-# =========================================================
-# DASHBOARD
-# =========================================================
 def build_shipment_table(shipments):
     rows = ""
     for idx, s in enumerate(shipments, start=1):
@@ -1313,7 +1207,6 @@ def build_shipment_table(shipments):
           <td>{actions}</td>
         </tr>"""
     return rows
-
 
 def build_filter_form(vals, action):
     def sel(name, field, options):
@@ -1346,7 +1239,6 @@ def build_filter_form(vals, action):
         <a href="{action}" class="btn btn-secondary btn-sm">&#10006; Reset</a></div>
     </form>"""
 
-
 def _dashboard_query(vals, page):
     sql_base = "FROM shipments WHERE is_deleted=0 AND status != 'Closed'"
     params = []
@@ -1376,7 +1268,6 @@ def _dashboard_query(vals, page):
     shipments = cur.fetchall()
     conn.close()
     return shipments, total
-
 
 @app.route('/dashboard')
 def dashboard():
@@ -1422,10 +1313,6 @@ def dashboard():
     """
     return render_template_string(html)
 
-
-# =========================================================
-# ADD / EDIT SHIPMENT
-# =========================================================
 def shipment_form(action, data=None, btn="Add Part"):
     d = data or {}
     def v(k):
@@ -1472,7 +1359,6 @@ def shipment_form(action, data=None, btn="Add Part"):
     </div>
     </form>"""
 
-
 @app.route('/add_shipment', methods=['GET', 'POST'])
 def add_shipment():
     if 'user' not in session:
@@ -1499,7 +1385,6 @@ def add_shipment():
       {shipment_form('/add_shipment', btn='Add Part')}
     </div></div>"""
     return render_template_string(html)
-
 
 @app.route('/edit_shipment/<int:slno>', methods=['GET', 'POST'])
 def edit_shipment(slno):
@@ -1528,10 +1413,6 @@ def edit_shipment(slno):
           {shipment_form(f'/edit_shipment/{slno}', dict(shipment), btn='Update Part')}
         </div></div>""")
 
-
-# =========================================================
-# DELETE / STATUS CHANGE → Closed OFP
-# =========================================================
 @app.route('/delete_shipment/<int:slno>')
 def delete_shipment(slno):
     if 'user' not in session:
@@ -1543,10 +1424,6 @@ def delete_shipment(slno):
     conn.close()
     return redirect('/dashboard')
 
-
-# =========================================================
-# CLOSED OFP
-# =========================================================
 @app.route('/closed_ofp')
 def closed_ofp():
     if 'user' not in session:
@@ -1664,7 +1541,6 @@ def closed_ofp():
     </div>"""
     return render_template_string(html)
 
-
 @app.route('/permanent_delete_shipment/<int:slno>')
 def permanent_delete_shipment(slno):
     if 'user' not in session:
@@ -1675,10 +1551,6 @@ def permanent_delete_shipment(slno):
     conn.close()
     return redirect('/closed_ofp')
 
-
-# =========================================================
-# UPDATE ONEDRIVE URL
-# =========================================================
 @app.route('/update_onedrive/<int:shipment_id>', methods=['POST'])
 def update_onedrive(shipment_id):
     if 'user' not in session:
@@ -1691,10 +1563,6 @@ def update_onedrive(shipment_id):
     conn.close()
     return redirect(url_for('view_discussion', shipment_id=shipment_id))
 
-
-# =========================================================
-# SUMMARY DASHBOARD
-# =========================================================
 def get_summary_data(vals):
     conn = get_db()
     cur = dict_cursor(conn)
@@ -1752,7 +1620,6 @@ def get_summary_data(vals):
     conn.close()
     return data
 
-
 def get_parts_for_group(part_name, model):
     conn = get_db()
     cur = dict_cursor(conn)
@@ -1763,7 +1630,6 @@ def get_parts_for_group(part_name, model):
     conn.close()
     return rows
 
-
 def get_discussions_for_shipment(shipment_id):
     conn = get_db()
     cur = dict_cursor(conn)
@@ -1773,7 +1639,6 @@ def get_discussions_for_shipment(shipment_id):
     rows = cur.fetchall()
     conn.close()
     return rows
-
 
 @app.route('/summary_dashboard')
 def summary_dashboard():
@@ -1952,23 +1817,12 @@ def summary_dashboard():
     """
     return render_template_string(html)
 
-
-# =========================================================
-# DISCUSSION — status: Open → Open-QAC / Open-TSD on message
-# =========================================================
 def _auto_status_on_post(current_status, portal):
-    """
-    Status rules:
-    - No discussions → 'Open'
-    - QAC posts → 'Open - QAC'
-    - TSD posts → 'Open - TSD'
-    """
     if portal == 'QAC':
         return 'Open - QAC'
     elif portal == 'TSD':
         return 'Open - TSD'
     return current_status
-
 
 @app.route('/discussion/<int:shipment_id>', methods=['GET', 'POST'])
 def view_discussion(shipment_id):
@@ -1982,8 +1836,6 @@ def view_discussion(shipment_id):
         action = request.form.get('action', 'post')
         if action == 'post':
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            # ── FIX: Use the shipment's own PIC field as the PI number ──
-            # Only fall back to auto-generated if PIC is blank
             cur.execute('SELECT "PIC" FROM shipments WHERE "Sl_No"=%s', (shipment_id,))
             _pic_row = cur.fetchone()
             shipment_pi = (_pic_row['PIC'] or generate_pi_number(shipment_id)) if _pic_row else generate_pi_number(shipment_id)
@@ -1992,7 +1844,6 @@ def view_discussion(shipment_id):
             VALUES(%s,%s,%s,%s,%s,%s,%s,%s)""",
             (shipment_id, shipment_pi, request.form.get('message', ''),
              portal, now, name, username, portal))
-            # Auto-update status: Open → Open-QAC or Open-TSD based on who posts
             cur.execute('SELECT status FROM shipments WHERE "Sl_No"=%s', (shipment_id,))
             row = cur.fetchone()
             if row:
@@ -2028,9 +1879,6 @@ def view_discussion(shipment_id):
                 (shipment_id,))
     discussions = cur.fetchall()
     conn.close()
-
-    # ── FIX: Display the shipment's own PIC value; fall back only if blank ──
-    auto_pi = (shipment['PIC'] or generate_pi_number(shipment_id)) if shipment else generate_pi_number(shipment_id)
 
     current_onedrive = ''
     if shipment:
@@ -2147,19 +1995,9 @@ def view_discussion(shipment_id):
 
       <div class="card">
         <div class="card-title-bar"><h2>&#128172; Post a Message</h2></div>
-        <div style="margin-top:14px;margin-bottom:12px;">
-          <div style="font-size:0.68rem;font-weight:700;color:var(--text-muted);
-                      text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">
-            PI Number
-          </div>
-          <div class="auto-pi-display">
-            <span class="pi-label">PI</span>
-            <strong>{auto_pi}</strong>
-          </div>
-        </div>
-        <form method="POST">
+        <form method="POST" style="margin-top:14px">
           <input type="hidden" name="action" value="post">
-          <div class="form-group" style="margin-top:10px"><label>Message</label>
+          <div class="form-group"><label>Message</label>
             <textarea name="message" rows="3" style="width:100%" required
                       placeholder="Type your message..."></textarea></div>
           <button type="submit" class="btn btn-primary" style="margin-top:10px">
@@ -2196,10 +2034,6 @@ def view_discussion(shipment_id):
     </script>"""
     return render_template_string(html)
 
-
-# =========================================================
-# MAIN
-# =========================================================
 if __name__ == "__main__":
     import socket
     init_db()
