@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, render_template_string, session, redirect, url_for, request, jsonify
 import psycopg2
 import psycopg2.extras
@@ -905,8 +904,7 @@ def generate_pi_number(shipment_id):
 def get_db():
     conn = psycopg2.connect(
         host="localhost", database="postgres",
-        user="postgres",
-        password="Shreya@2005", port="5432"
+        user="TKM02052", password="TUKA@2028", port="5432"
     )
     conn.autocommit = False
     return conn
